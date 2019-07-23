@@ -1,27 +1,67 @@
 import sys, pygame
-pygame.init()
 
-size = width, height = 1600, 900
-speed = [2, 3]
+# Static Variables
+screen_size = width, height = 1600, 900
+ball_speed = [400, 600]
 black = 0, 0, 0
 
-screen = pygame.display.set_mode(size)
+class Ball(object):
+	def __init__(self, speed, screen):
+		self.image = pygame.transform.scale(pygame.image.load("ball.png").convert(), (20,20)).convert_alpha()
+		self.rect = self.image.get_rect()
+		self.speed = speed
+		self.screen = screen
 
-ball = pygame.image.load("ball.png").convert()  # convert works on pixel format, not file format. If convert isn't used, SDL converts on-the-fly each blit, which is silly.
-scaledball = pygame.transform.scale(ball, (20, 20))
+	def move(self, screen_rect, dt):
+		self.rect = self.rect.move(self.speed[0]*dt, self.speed[1]*dt)
+		if self.rect.left < 0 or self.rect.right > screen_rect.right:
+			self.speed[0] = -self.speed[0]
+		if self.rect.top < 0 or self.rect.bottom > screen_rect.bottom:
+			self.speed[1] = -self.speed[1]
 
-ballrect = scaledball.get_rect()
+	def draw(self, surface):
+		surface.blit(self.image, self.rect)
 
-while 1:
-	for event in pygame.event.get():
-		if event.type == pygame.QUIT: sys.exit()
+class App(object):
+	def __init__(self):
+		self.screen = pygame.display.get_surface()
+		self.screen_rect = self.screen.get_rect()
+		self.clock = pygame.time.Clock()
+		self.fps = 120
+		self.done = False
+		self.keys = pygame.key.get_pressed()
+		self.ball = Ball(ball_speed, self.screen)
 
-	ballrect = ballrect.move(speed)
-	if ballrect.left < 0 or ballrect.right > width:
-		speed[0] = -speed[0]
-	if ballrect.top < 0 or ballrect.bottom > height:
-		speed[1] = -speed[1]
+	def event_loop(self):
+		for event in pygame.event.get():
+			if event.type == pygame.QUIT:
+				self.done = True
+			elif event.type in (pygame.KEYDOWN, pygame.KEYUP):
+				self.keys = pygame.key.get_pressed()
 
-	screen.fill(black)
-	screen.blit(scaledball, ballrect)
-	pygame.display.update() # try specifying pygame.display.update(ballrect) to draw some fun stuff!
+	def render(self):
+		self.screen.fill(black)
+		self.ball.draw(self.screen)
+		pygame.display.update()
+
+	def update(self, dt):
+		self.ball.move(self.screen_rect, dt)
+
+	def main_loop(self):
+		dt = 0
+		self.clock.tick(self.fps)
+		while not self.done:
+			self.event_loop()
+			self.update(dt)
+			self.render()
+			dt = self.clock.tick(self.fps)/1000.0
+
+def main():
+	pygame.init()
+	pygame.display.set_mode(screen_size)
+	App().main_loop()
+	pygame.quit()
+	sys.exit()
+
+if __name__ == "__main__":
+	main()
