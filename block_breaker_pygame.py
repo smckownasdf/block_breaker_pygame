@@ -5,10 +5,6 @@ screen_size = width, height = 1600, 900
 ball_speed = [400, 600]
 black = (0, 0, 0, 255)
 transparent = (0, 0, 0, 0)
-paddle_color = pygame.Color(154, 100, 220, a=200)
-
-paddle_move_dict = {pygame.K_LEFT	: [-1, 0],
-					pygame.K_RIGHT	: [ 1, 0]}
 
 class Ball(object):
 	def __init__(self, speed, screen):
@@ -17,12 +13,67 @@ class Ball(object):
 		self.speed = speed
 		self.screen = screen
 
+	def bouncex(self):
+		if self.speed[0] >= 0:
+			self.speed[0] = -self.speed[0]
+		else:
+			self.speed[0] = -self.speed[0]
+
+	def bouncey(self):
+		if self.speed[1] >= 0:
+			self.speed[1] = -self.speed[1]
+		else:
+			self.speed[1] = -self.speed[1]
+
+	def bounce(self, collider):
+		if self.rect.colliderect(collider):
+			if self.speed[1] >= 0: # ball is moving up
+				if self.speed[0] >= 0: # ball is moving right
+					# vertical distance between objects is less than horizontal distance
+					if abs(collider.rect.bottom - self.rect.top) <= abs(collider.rect.left - self.rect.right):
+						self.bouncey()
+						self.rect.bottom = collider.rect.top
+					else: # horizontal distance less than vertical distance
+						self.bouncex()
+						self.rect.right = collider.rect.left
+				else: # ball is moving up and left
+					# vert collision closer than horizontal
+					if abs(collider.rect.bottom - self.rect.top) <= abs(collider.rect.right - self.rect.left):
+						self.bouncey()
+						self.rect.bottom = collider.rect.top
+					else:
+						self.bouncex()
+						self.rect.left = collider.rect.right
+			else: # ball is moving down
+				if self.speed[0] >= 0: # if ball is moving right
+					# if the difference between  - ball.rect.top) >= (block.rect.left - ball.rect.right):
+					if abs(collider.rect.top - self.rect.bottom) <= abs(collider.rect.left - self.rect.right):
+						# self.ball.speed
+						self.bouncey()
+						self.rect.top = collider.rect.bottom
+					else:
+						self.bouncex()
+						self.rect.right = collider.rect.left
+				else: # ball is moving down and left
+					if abs(collider.rect.top - self.rect.bottom) <= abs(collider.rect.right - self.rect.left):
+						self.bouncey()
+						self.rect.top = collider.rect.bottom
+					else:
+						self.bouncex()
+						self.rect.left = collider.rect.right
+
+
 	def move(self, screen_rect, dt):
 		self.rect = self.rect.move(self.speed[0]*dt, self.speed[1]*dt)
-		if self.rect.left < 0 or self.rect.right > screen_rect.right:
-			self.speed[0] = -self.speed[0] - 5
+		if self.rect.left < 0:
+			self.bouncex()
+			self.rect.left = 0
+		elif self.rect.right > screen_rect.right:
+			self.bouncex()
+			self.rect.right = screen_rect.right
 		if self.rect.top < 0:
-			self.speed[1] = -self.speed[1] + 5
+			self.bouncey()
+			self.rect.top = 0
 		self.lost_ball(screen_rect)
 
 	def lost_ball(self, screen_rect):
@@ -34,6 +85,7 @@ class Ball(object):
 
 class Paddle(object):
 	size = (150, 20)
+	paddle_color = pygame.Color(154, 100, 220, a=200)
 	def __init__(self, posx, posy):
 		self.image = self.create_paddle()
 		self.rect = self.image.get_rect(center=(posx, posy))
@@ -44,7 +96,7 @@ class Paddle(object):
 		image = pygame.Surface(Paddle.size).convert_alpha()
 		image.fill(transparent)
 		img_rect = image.get_rect()
-		pygame.draw.rect(image, paddle_color, img_rect)
+		pygame.draw.rect(image, Paddle.paddle_color, img_rect)
 		return image
 
 	def update(self, pressedkeys, screen_rect, dt):
@@ -59,6 +111,28 @@ class Paddle(object):
 	def draw(self, surface):
 		surface.blit(self.image, self.rect)
 
+class Block(object):
+	size = (350, 80)
+	block_color = pygame.Color(220,114,42,a=200)
+	one_hit = 1
+	def __init__(self, posx, posy, hitmax):
+		self.image = self.create_block()
+		self.rect = self.image.get_rect(center=(posx, posy))
+		self.hit_count = 0
+		self.hit_max = hitmax
+
+	def create_block(self):
+		image = pygame.Surface(Block.size).convert_alpha()
+		image.fill(transparent)
+		img_rect = image.get_rect()
+		pygame.draw.rect(image, Block.block_color, img_rect)
+		return image
+
+	def draw(self, surface):
+		surface.blit(self.image, self.rect)
+
+	def destroy(self, hitmax):
+		pass
 
 class App(object):
 	def __init__(self):
@@ -71,6 +145,7 @@ class App(object):
 		self.ball = Ball(ball_speed, self.screen)
 		self.paddle_offset = 30
 		self.paddle = Paddle(self.screen_rect.centerx, self.screen_rect.bottom - self.paddle_offset)
+		self.block = Block(500, 100, Block.one_hit)
 
 	def event_loop(self):
 		for event in pygame.event.get():
@@ -79,14 +154,11 @@ class App(object):
 			elif event.type in (pygame.KEYDOWN, pygame.KEYUP):
 				self.keys = pygame.key.get_pressed()
 
-	def paddle_hit(self):
-		if pygame.sprite.collide_rect(self.paddle, self.ball):
-			self.ball.speed[1] = -self.ball.speed[1] - 5
-
 	def render(self):
 		self.screen.fill(black)
 		self.ball.draw(self.screen)
 		self.paddle.draw(self.screen)
+		self.block.draw(self.screen)
 		pygame.display.update()
 
 	def update(self, dt):
@@ -100,7 +172,8 @@ class App(object):
 			self.event_loop()
 			self.update(dt)
 			self.render()
-			self.paddle_hit()
+			self.ball.bounce(self.block)
+			self.ball.bounce(self.paddle)
 			dt = self.clock.tick(self.fps)/1000.0
 
 def main():
