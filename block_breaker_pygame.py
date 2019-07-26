@@ -12,6 +12,7 @@ class Ball(object):
 		self.rect = self.image.get_rect()
 		self.speed = speed
 		self.screen = screen
+		self.corner_threshhold = 1.5
 
 	def bouncex(self):
 		if self.speed[0] >= 0:
@@ -27,37 +28,53 @@ class Ball(object):
 
 	def bounce(self, collider):
 		if self.rect.colliderect(collider):
-			if self.speed[1] >= 0: # ball is moving up
+			if self.speed[1] >= 0: # ball is moving down
 				if self.speed[0] >= 0: # ball is moving right
-					# vertical distance between objects is less than horizontal distance
-					if abs(collider.rect.bottom - self.rect.top) <= abs(collider.rect.left - self.rect.right):
+					# Corner hit
+					if abs(abs(self.rect.bottom - collider.rect.top) - abs(self.rect.right - collider.rect.left)) <= self.corner_threshhold:
+						pass
+					# Contact is more vertical than horizontal 
+					elif abs(self.rect.bottom - collider.rect.top) <= abs(self.rect.right - collider.rect.left):
 						self.bouncey()
 						self.rect.bottom = collider.rect.top
-					else: # horizontal distance less than vertical distance
-						self.bouncex()
-						self.rect.right = collider.rect.left
-				else: # ball is moving up and left
-					# vert collision closer than horizontal
-					if abs(collider.rect.bottom - self.rect.top) <= abs(collider.rect.right - self.rect.left):
-						self.bouncey()
-						self.rect.bottom = collider.rect.top
-					else:
-						self.bouncex()
-						self.rect.left = collider.rect.right
-			else: # ball is moving down
-				if self.speed[0] >= 0: # if ball is moving right
-					# if the difference between  - ball.rect.top) >= (block.rect.left - ball.rect.right):
-					if abs(collider.rect.top - self.rect.bottom) <= abs(collider.rect.left - self.rect.right):
-						# self.ball.speed
-						self.bouncey()
-						self.rect.top = collider.rect.bottom
+					# Contact is more horizontal than vertical
 					else:
 						self.bouncex()
 						self.rect.right = collider.rect.left
 				else: # ball is moving down and left
-					if abs(collider.rect.top - self.rect.bottom) <= abs(collider.rect.right - self.rect.left):
+					# Corner hit
+					if abs(abs(self.rect.bottom - collider.rect.top) - abs(self.rect.left - collider.rect.right)) <= self.corner_threshhold:
+						pass
+					# Contact more vertical than horizontal
+					elif abs(self.rect.bottom - collider.rect.top) <= abs(self.rect.left - collider.rect.right):
+						self.bouncey()
+						self.rect.bottom = collider.rect.top
+					# Contact more horizontal than vertical
+					else:
+						self.bouncex()
+						self.rect.left = collider.rect.right
+			else: # ball is moving up
+				if self.speed[0] >= 0: # ball is moving right
+					# Corner hit
+					if abs(abs(self.rect.top - collider.rect.bottom) - abs(self.rect.right - collider.rect.left)) <= self.corner_threshhold:
+						pass
+					# More vertical than horizontal
+					elif abs(self.rect.bottom - collider.rect.top) <= abs(self.rect.right - collider.rect.left):
 						self.bouncey()
 						self.rect.top = collider.rect.bottom
+					# More horizontal than vertical
+					else:
+						self.bouncex()
+						self.rect.right = collider.rect.left
+				else: # ball is moving up and left
+					# Corner hit
+					if abs(abs(self.rect.top - collider.rect.bottom) - abs(self.rect.left - collider.rect.right)) <= self.corner_threshhold:
+						pass
+					# More vertical than horizontal
+					elif abs(self.rect.top - collider.rect.bottom) <= abs(self.rect.left - collider.rect.right):
+						self.bouncey()
+						self.rect.top = collider.rect.bottom
+					# More horizontal than vertical
 					else:
 						self.bouncex()
 						self.rect.left = collider.rect.right
