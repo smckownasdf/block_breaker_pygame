@@ -3,34 +3,29 @@ import random
 
 # Global Variables
 screen_size = width, height = 1600, 800
-ball_speed = [400, 600]
 transparent = (0, 0, 0, 0)
 pixelx = 64
 pixely = 32
 
 class Ball(pygame.sprite.Sprite):
+	count = 3
 	def __init__(self, posx, posy):
 		pygame.sprite.Sprite.__init__(self) # Call Sprite initializer
-		self.image = pygame.transform.scale(pygame.image.load("ball.png").convert(), (20,20)).convert_alpha()
+		self.image = pygame.transform.scale(pygame.image.load("./block_breaker_pygame/ball.png").convert(), (20,20)).convert_alpha()
 		self.rect = self.image.get_rect()
-		self.speed = ball_speed
-		self.screen = pygame.display.get_surface()
+		self.speed = [400, 600]
 		self.corner_threshhold = 1.5
 		self.screen = pygame.display.get_surface()
 		self.screen_rect = self.screen.get_rect()
 		self.spin = 0
 
 	def bouncex(self):
-		random_factor = random.random()*5
-		self.speed[0] = -self.speed[0] + random_factor
-		self.speed[1] = self.speed[1] - random_factor
-		print(str(self.speed[0]) + " " + str(self.speed[1]))
+		self.speed[0] = -self.speed[0]
+		self.speed[1] = self.speed[1]
 
 	def bouncey(self):
-		random_factor = random.random()*5
-		self.speed[1] = -self.speed[1] + random_factor
-		self.speed[0] = self.speed[0] + self.spin - random_factor
-		print(str(self.speed[0]) + " " + str(self.speed[1]))
+		self.speed[1] = -self.speed[1]
+		self.speed[0] = self.speed[0] + self.spin
 
 	def bounce(self, collider):
 		if self.rect.colliderect(collider):
@@ -38,9 +33,9 @@ class Ball(pygame.sprite.Sprite):
 				collider.hit()
 			if collider.__class__.__name__ == "Paddle":
 				if App.pressed_left:
-					self.spin = 50
-				if App.pressed_right:
-					self.spin = -50
+					self.spin = 100
+				elif App.pressed_right:
+					self.spin = -100
 			if self.speed[1] >= 0: # ball is moving down
 				if self.speed[0] >= 0: # ball is moving right
 					# Corner hit
@@ -110,7 +105,8 @@ class Ball(pygame.sprite.Sprite):
 		self.lost_ball(self.screen_rect)
 
 	def lost_ball(self, screen_rect):
-		if self.rect.top > screen_rect.bottom:
+		if self.rect.top > screen_rect.bottom + 300:
+			Ball.count -= 1
 			self.rect.top = 0
 
 class Paddle(pygame.sprite.Sprite):
@@ -192,6 +188,10 @@ class Level(object):
 		self.paddles = pygame.sprite.Group()
 		self.blocks = pygame.sprite.Group()
 		self.all_sprites = pygame.sprite.Group()
+		self.ui_display = UI_Display()
+		self.ball_count = Ball.count
+		self.ui_display.display_ball_count()
+		self.all_sprites.add(self.ui_display.all_sprites)
 
 	def collision_check(self):
 		collisions = pygame.sprite.spritecollide(self.ball, self.all_sprites, False)
@@ -201,7 +201,7 @@ class Level(object):
 	def create_background(self):
 		self.background = pygame.Surface(screen_size)
 		self.background = self.background.convert()
-		self.background.fill((50,50,50))
+		self.background.fill((0,0,0))
 		return self.background
 
 	def choose_level(self, level=1):
@@ -244,7 +244,7 @@ class Level(object):
 				"  2                    2  ",
 				"  2                    2  ",
 				"  2 111111111111111111 2  ",
-				"  2/1111111111111111111/2  ",
+				"  2/1111111113111111111/2  ",
 				"  2 111111111111111111 2  ",
 				"  2                    2  ",
 				"  2                    2  ",
@@ -297,6 +297,40 @@ class Level(object):
 			y += pixely
 			x = 0
 
+class UI_Display(object):
+	def __init__(self):
+		self.all_sprites = pygame.sprite.Group()
+		self.ball_count = Ball.count
+		self.ball1 = Display_Ball(20,20)
+		self.ball2 = Display_Ball(45,20)
+		self.ball3 = Display_Ball(70,20)
+
+	def display_ball_count(self):
+		self.all_sprites.add(self.ball1)
+		self.all_sprites.add(self.ball2)
+		self.all_sprites.add(self.ball3)
+
+	def update_ball_count(self):
+		self.ball_count = Ball.count
+		
+	def remove_ball_display(self):
+		self.update_ball_count()
+		if self.ball_count == 2:
+			self.ball3.kill()
+		if self.ball_count == 1:
+			self.ball2.kill()
+		if self.ball_count == 0:
+			self.ball1.kill()
+
+	def build_display(self):
+		self.display_ball_count()
+
+class Display_Ball(pygame.sprite.Sprite):
+	def __init__(self, posx, posy):
+		pygame.sprite.Sprite.__init__(self) # Call Sprite initializer
+		self.image = pygame.transform.scale(pygame.image.load("./block_breaker_pygame/ball.png").convert(), (20,20)).convert_alpha()
+		self.rect = self.image.get_rect(center=(posx, posy))
+
 class App(object):
 	pressed_left = False
 	pressed_right = False
@@ -310,11 +344,15 @@ class App(object):
 		self.level = Level()
 		self.level.choose_level(2)
 		self.level.build_level()
+		self.level.ui_display.build_display()
+		self.paused = False
 
 	def event_loop(self):
 		for event in pygame.event.get():
 			if event.type == pygame.QUIT:
 				self.done = True
+			if event.type == pygame.KEYDOWN and event.key == pygame.K_p:
+				self.pause()
 			elif event.type == pygame.KEYDOWN:
 				if event.key == pygame.K_LEFT:
 					App.pressed_left = True
@@ -326,17 +364,32 @@ class App(object):
 				elif event.key == pygame.K_RIGHT:
 					App.pressed_right = False
 
+	def pause(self):
+		self.paused = True
+
+	def paused_event_loop(self):
+		for event in pygame.event.get():
+			if event.type == pygame.QUIT:
+				pygame.quit()
+			if event.type == pygame.KEYDOWN and event.key == pygame.K_p:
+				self.paused = False
+
 	def update(self):
-		self.level.all_sprites.update()
-		self.level.collision_check()
-		self.screen.blit(self.level.background, (0,0))
-		self.level.all_sprites.draw(self.screen)
+		if not self.paused:
+			self.level.ui_display.remove_ball_display()
+			self.level.all_sprites.update()
+			self.level.collision_check()
+			self.screen.blit(self.level.background, (0,0))
+			self.level.all_sprites.draw(self.screen)
 		pygame.display.flip()
 
 	def main_loop(self):
 		self.clock.tick(self.fps)
 		while not self.done:
-			self.event_loop()
+			if self.paused:
+				self.paused_event_loop()
+			else:
+				self.event_loop()
 			self.update()
 			App.dt = self.clock.tick(self.fps)/1000.0
 
