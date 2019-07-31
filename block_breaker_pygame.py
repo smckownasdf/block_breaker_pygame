@@ -1,4 +1,5 @@
 import sys, pygame
+import random
 
 # Global Variables
 screen_size = width, height = 1600, 800
@@ -17,23 +18,29 @@ class Ball(pygame.sprite.Sprite):
 		self.corner_threshhold = 1.5
 		self.screen = pygame.display.get_surface()
 		self.screen_rect = self.screen.get_rect()
+		self.spin = 0
 
 	def bouncex(self):
-		if self.speed[0] >= 0:
-			self.speed[0] = -self.speed[0]
-		else:
-			self.speed[0] = -self.speed[0]
+		random_factor = random.random()*5
+		self.speed[0] = -self.speed[0] + random_factor
+		self.speed[1] = self.speed[1] - random_factor
+		print(str(self.speed[0]) + " " + str(self.speed[1]))
 
 	def bouncey(self):
-		if self.speed[1] >= 0:
-			self.speed[1] = -self.speed[1]
-		else:
-			self.speed[1] = -self.speed[1]
+		random_factor = random.random()*5
+		self.speed[1] = -self.speed[1] + random_factor
+		self.speed[0] = self.speed[0] + self.spin - random_factor
+		print(str(self.speed[0]) + " " + str(self.speed[1]))
 
 	def bounce(self, collider):
 		if self.rect.colliderect(collider):
 			if collider.__class__.__name__ == "Block":
 				collider.hit()
+			if collider.__class__.__name__ == "Paddle":
+				if App.pressed_left:
+					self.spin = 50
+				if App.pressed_right:
+					self.spin = -50
 			if self.speed[1] >= 0: # ball is moving down
 				if self.speed[0] >= 0: # ball is moving right
 					# Corner hit
@@ -84,6 +91,7 @@ class Ball(pygame.sprite.Sprite):
 					else:
 						self.bouncex()
 						self.rect.left = collider.rect.right
+		self.spin = 0
 
 	def update(self):
 		self.rect = self.rect.move(self.speed[0]*App.dt, self.speed[1]*App.dt)
