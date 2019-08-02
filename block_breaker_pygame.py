@@ -11,7 +11,7 @@ class Ball(pygame.sprite.Sprite):
 	count = 3
 	def __init__(self, posx, posy):
 		pygame.sprite.Sprite.__init__(self) # Call Sprite initializer
-		self.image = pygame.transform.scale(pygame.image.load("./block_breaker_pygame/ball.png").convert(), (20,20)).convert_alpha()
+		self.image = pygame.transform.scale(pygame.image.load("ball.png").convert(), (20,20)).convert_alpha()
 		self.rect = self.image.get_rect()
 		self.speed = [400, 600]
 		self.corner_threshhold = 1.5
@@ -173,11 +173,13 @@ class Block(pygame.sprite.Sprite):
 
 	def hit(self):
 		self.hit_count += 1
+		Display_Score.score += 150
 		self.destroy()
 
 	def destroy(self):
 		if self.hit_count == self.hit_max:
 			self.kill()
+			Display_Score.score += 500
 
 class Level(object):
 	def __init__(self):
@@ -192,6 +194,7 @@ class Level(object):
 		self.ball_count = Ball.count
 		self.ui_display.display_ball_count()
 		self.all_sprites.add(self.ui_display.all_sprites)
+		self.display_score = Display_Score()
 
 	def collision_check(self):
 		collisions = pygame.sprite.spritecollide(self.ball, self.all_sprites, False)
@@ -297,6 +300,25 @@ class Level(object):
 			y += pixely
 			x = 0
 
+class Display_Score(object):
+	score = 0
+	def __init__(self):
+		self.num_value = Display_Score.score
+		self.zeroes = ""
+		self.zero_str = "0"
+		self.str_value = self.num_value_to_text()
+
+	def num_value_to_text(self):
+		self.zeroes = ""
+		while (len(self.zeroes) + len(str(self.num_value)) < 7):
+			self.zeroes += self.zero_str
+		self.str_value = self.zeroes + str(self.num_value)
+		return self.str_value
+
+	def update(self):
+		self.num_value = Display_Score.score
+		self.num_value_to_text()
+
 class UI_Display(object):
 	def __init__(self):
 		self.all_sprites = pygame.sprite.Group()
@@ -304,6 +326,12 @@ class UI_Display(object):
 		self.ball1 = Display_Ball(20,20)
 		self.ball2 = Display_Ball(45,20)
 		self.ball3 = Display_Ball(70,20)
+		self.pause_overlay = self.build_pause_overlay()
+		self.pause_text = Display_Text(64,"GAME PAUSED", (800, 300))
+		self.pause_message = Display_Text(48,'Press "P" to Resume', (800, 500))
+		self.display_score = Display_Score()
+		self.score_text = self.display_score.str_value
+		self.score = Display_Text(32, self.score_text, (1550, 50), True)
 
 	def display_ball_count(self):
 		self.all_sprites.add(self.ball1)
@@ -322,13 +350,50 @@ class UI_Display(object):
 		if self.ball_count == 0:
 			self.ball1.kill()
 
+	def update_score(self):
+		self.display_score.update()
+		self.score_text = self.display_score.str_value
+		self.score = Display_Text(32, self.score_text, (1550, 50), True)
+
 	def build_display(self):
 		self.display_ball_count()
+
+	def build_pause_overlay(self):
+		self.pause_overlay = pygame.Surface(screen_size)
+		self.pause_overlay.set_alpha(128)
+		self.pause_overlay.fill((255,200,200))
+		return self.pause_overlay
+
+class Display_Text(object):
+	def __init__(self, size, text, center_tuple, is_right=False):
+		self.font_size = size
+		self.font = self.create_font()
+		self.text = text
+		self.is_right = is_right
+		self.tuple = center_tuple
+		self.rendered_text = self.render_font()
+		self.text_rect = self.create_text_rect()
+
+	def create_font(self):
+		self.font = pygame.font.Font('XeroxSerifWideBold.ttf',self.font_size)
+		return self.font
+
+	def create_text_rect(self):
+		if self.is_right:
+			self.text_rect = self.rendered_text.get_rect(midright=self.tuple)
+			return self.text_rect
+		else:
+			self.text_rect = self.rendered_text.get_rect(center=self.tuple)
+			return self.text_rect
+
+	def render_font(self):
+		self.rendered_text = self.font.render(self.text, True, (255,255,255))
+		return self.rendered_text
 
 class Display_Ball(pygame.sprite.Sprite):
 	def __init__(self, posx, posy):
 		pygame.sprite.Sprite.__init__(self) # Call Sprite initializer
-		self.image = pygame.transform.scale(pygame.image.load("./block_breaker_pygame/ball.png").convert(), (20,20)).convert_alpha()
+		self.image = pygame.transform.scale(pygame.image.load("ball.png").convert(), (20,20)).convert_alpha()
 		self.rect = self.image.get_rect(center=(posx, posy))
 
 class App(object):
@@ -366,6 +431,9 @@ class App(object):
 
 	def pause(self):
 		self.paused = True
+		self.screen.blit(self.level.ui_display.pause_overlay, (0,0))
+		self.screen.blit(self.level.ui_display.pause_text.rendered_text, self.level.ui_display.pause_text.text_rect)	
+		self.screen.blit(self.level.ui_display.pause_message.rendered_text, self.level.ui_display.pause_message.text_rect)	
 
 	def paused_event_loop(self):
 		for event in pygame.event.get():
@@ -377,9 +445,12 @@ class App(object):
 	def update(self):
 		if not self.paused:
 			self.level.ui_display.remove_ball_display()
+			self.level.ui_display.update_score()
 			self.level.all_sprites.update()
 			self.level.collision_check()
 			self.screen.blit(self.level.background, (0,0))
+			pygame.draw.rect(self.screen, (0,0,0), self.level.ui_display.score.text_rect)
+			self.screen.blit(self.level.ui_display.score.rendered_text, self.level.ui_display.score.text_rect)
 			self.level.all_sprites.draw(self.screen)
 		pygame.display.flip()
 
