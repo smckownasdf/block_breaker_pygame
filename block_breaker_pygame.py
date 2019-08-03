@@ -355,22 +355,18 @@ class UI_Display(object):
 		self.all_sprites.add(self.ball2)
 		self.all_sprites.add(self.ball3)
 
-	def update_ball_count(self):
+	def update(self):
 		self.ball_count = Ball.count
-		
-	def update_ball_display(self):
-		self.update_ball_count()
 		if self.ball_count == 2:
 			self.ball3.kill()
 		if self.ball_count == 1:
 			self.ball2.kill()
 		if self.ball_count == 0:
 			self.ball1.kill()
-
-	def update_score(self):
 		self.display_score.update()
 		self.score_text = self.display_score.str_value
 		self.score = Display_Text(32, self.score_text, (1550, 50), True)
+		self.blocks_left = Display_Text(32, "Blocks Remaining: " + str(Level.block_count), (800, 600))
 
 	def build_display(self):
 		self.display_ball_count()
@@ -449,6 +445,7 @@ class App(object):
 
 	def pause(self):
 		self.paused = True
+		self.level.ui_display.update()
 		self.screen.blit(self.level.ui_display.pause_overlay, (0,0))
 		self.screen.blit(self.level.ui_display.pause_text.rendered_text, self.level.ui_display.pause_text.text_rect)	
 		self.screen.blit(self.level.ui_display.pause_message.rendered_text, self.level.ui_display.pause_message.text_rect)	
@@ -463,8 +460,7 @@ class App(object):
 
 	def update(self):
 		if not self.paused:
-			self.level.ui_display.update_ball_display()
-			self.level.ui_display.update_score()
+			self.level.ui_display.update()
 			self.level.all_sprites.update()
 			self.level.collision_check()
 			self.screen.blit(self.level.background, (0,0))
