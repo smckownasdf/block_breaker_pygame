@@ -107,6 +107,7 @@ class Ball(pygame.sprite.Sprite):
 	def lost_ball(self, screen_rect):
 		if self.rect.top > screen_rect.bottom + 300:
 			Ball.count -= 1
+			print(Ball.count)
 			self.rect.top = 0
 
 class Paddle(pygame.sprite.Sprite):
@@ -180,8 +181,11 @@ class Block(pygame.sprite.Sprite):
 		if self.hit_count == self.hit_max:
 			self.kill()
 			Display_Score.score += 500
+			Level.block_count -= 1
+			print("Block count: " + str(Level.block_count))
 
 class Level(object):
+	block_count = None
 	def __init__(self):
 		self.halfcol = pixelx/2
 		self.level_layout = None
@@ -299,6 +303,18 @@ class Level(object):
 					x += pixelx
 			y += pixely
 			x = 0
+		Level.block_count = len(self.blocks)
+
+	def clear_level(self):
+		self.level_layout = None
+		self.ball = None
+		self.blocks.empty()
+		self.all_sprites.empty()
+		self.ball_count = Ball.count
+		self.ui_display.display_ball_count()
+		self.all_sprites.add(self.ui_display.all_sprites)
+
+
 
 class Display_Score(object):
 	score = 0
@@ -329,6 +345,7 @@ class UI_Display(object):
 		self.pause_overlay = self.build_pause_overlay()
 		self.pause_text = Display_Text(64,"GAME PAUSED", (800, 300))
 		self.pause_message = Display_Text(48,'Press "P" to Resume', (800, 500))
+		self.blocks_left = Display_Text(32, "Blocks Remaining: " + str(Level.block_count), (800, 600))
 		self.display_score = Display_Score()
 		self.score_text = self.display_score.str_value
 		self.score = Display_Text(32, self.score_text, (1550, 50), True)
@@ -341,7 +358,7 @@ class UI_Display(object):
 	def update_ball_count(self):
 		self.ball_count = Ball.count
 		
-	def remove_ball_display(self):
+	def update_ball_display(self):
 		self.update_ball_count()
 		if self.ball_count == 2:
 			self.ball3.kill()
@@ -406,8 +423,9 @@ class App(object):
 		self.clock = pygame.time.Clock()
 		self.fps = 120
 		self.done = False
+		self.current_level = 1
 		self.level = Level()
-		self.level.choose_level(2)
+		self.level.choose_level(self.current_level)
 		self.level.build_level()
 		self.level.ui_display.build_display()
 		self.paused = False
@@ -434,6 +452,7 @@ class App(object):
 		self.screen.blit(self.level.ui_display.pause_overlay, (0,0))
 		self.screen.blit(self.level.ui_display.pause_text.rendered_text, self.level.ui_display.pause_text.text_rect)	
 		self.screen.blit(self.level.ui_display.pause_message.rendered_text, self.level.ui_display.pause_message.text_rect)	
+		self.screen.blit(self.level.ui_display.blocks_left.rendered_text, self.level.ui_display.blocks_left.text_rect)
 
 	def paused_event_loop(self):
 		for event in pygame.event.get():
@@ -444,7 +463,7 @@ class App(object):
 
 	def update(self):
 		if not self.paused:
-			self.level.ui_display.remove_ball_display()
+			self.level.ui_display.update_ball_display()
 			self.level.ui_display.update_score()
 			self.level.all_sprites.update()
 			self.level.collision_check()
@@ -462,6 +481,12 @@ class App(object):
 			else:
 				self.event_loop()
 			self.update()
+			if Level.block_count == 0:
+				Ball.count = 3
+				self.level.clear_level()
+				self.current_level += 1
+				self.level.choose_level(self.current_level)
+				self.level.build_level()
 			App.dt = self.clock.tick(self.fps)/1000.0
 
 def main():
