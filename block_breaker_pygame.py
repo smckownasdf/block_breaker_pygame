@@ -1,5 +1,5 @@
 import sys, pygame
-import random
+from bblevels import levels as bblevels
 
 # Global Variables
 screen_size = width, height = 1600, 800
@@ -9,6 +9,7 @@ pixely = 32
 
 class Ball(pygame.sprite.Sprite):
 	count = 3
+	lost = False
 	def __init__(self, posx, posy):
 		pygame.sprite.Sprite.__init__(self) # Call Sprite initializer
 		self.image = pygame.transform.scale(pygame.image.load("ball.png").convert(), (20,20)).convert_alpha()
@@ -107,8 +108,8 @@ class Ball(pygame.sprite.Sprite):
 	def lost_ball(self, screen_rect):
 		if self.rect.top > screen_rect.bottom + 300:
 			Ball.count -= 1
-			print(Ball.count)
-			self.rect.top = 0
+			Ball.lost = True
+			self.rect.top = screen_rect.top
 
 class Paddle(pygame.sprite.Sprite):
 	def __init__(self, posx, posy):
@@ -147,14 +148,26 @@ class Block(pygame.sprite.Sprite):
 	one_hit = 1
 	two_hit = 2
 	three_hit = 3
-	def __init__(self, posx, posy, hitmax):
+	count = None
+	def __init__(self, posx, posy, hitmax, xl=False, test=False):
 		pygame.sprite.Sprite.__init__(self)  # Call sprite initializer
+		self.test = test
+		self.xl = xl
 		self.hit_count = 0
 		self.hit_max = hitmax
-		self.size = (62, 30)
+		self.size = self.determine_size()
 		self.block_color = self.determine_color()
 		self.image = self.create_block()
 		self.rect = self.image.get_rect(center=(posx, posy))
+
+	def determine_size(self):
+		if self.xl:
+			size = (126, 62)
+		elif self.test:
+			size = (1280, 30)
+		else:
+			size = (62, 30)
+		return size
 
 	def determine_color(self):
 		if self.hit_max == 1:
@@ -181,11 +194,10 @@ class Block(pygame.sprite.Sprite):
 		if self.hit_count == self.hit_max:
 			self.kill()
 			Display_Score.score += 500
-			Level.block_count -= 1
-			print("Block count: " + str(Level.block_count))
+			Block.count -= 1
+			print("Block count: " + str(Block.count))
 
 class Level(object):
-	block_count = None
 	def __init__(self):
 		self.halfcol = pixelx/2
 		self.level_layout = None
@@ -213,63 +225,11 @@ class Level(object):
 
 	def choose_level(self, level=1):
 		if level == 1:
-			self.level_layout = [ # 26 * 26
-				"                          ",
-				"                  B       ",
-				"                          ",
-				"                          ",
-				"                          ",
-				"                          ",
-				"                          ",
-				"  1111111111111111111111  ",
-				"/  111111111111111111111  /",
-				"  1111111111111111111111  ",
-				"                          ",
-				"                          ",
-				"                          ",
-				"                          ",
-				"                          ",
-				"                          ",
-				"                          ",
-				"                          ",
-				"                          ",
-				"                          ",
-				"                          ",
-				"                          ",
-				"                          ",
-				"                          ",
-				"          P               ",
-				"                          ",
-			]
+			self.level_layout = bblevels.get("leveltest")
 		if level == 2:
-			self.level_layout = [
-				"                          ",
-				"                  B       ",
-				"                          ",
-				"                          ",
-				"  2222222222222222222222  ",
-				"  2                    2  ",
-				"  2                    2  ",
-				"  2 111111111111111111 2  ",
-				"  2/1111111113111111111/2  ",
-				"  2 111111111111111111 2  ",
-				"  2                    2  ",
-				"  2                    2  ",
-				"  2222222222222222222222  ",
-				"                          ",
-				"                          ",
-				"                          ",
-				"                          ",
-				"                          ",
-				"                          ",
-				"                          ",
-				"                          ",
-				"                          ",
-				"                          ",
-				"                          ",
-				"          P               ",
-				"                          ",
-			]
+			self.level_layout = bblevels.get("level1")
+		if level == 3:
+			self.level_layout = bblevels.get("level2")
 
 	def build_level(self):
 		x = 0
@@ -297,13 +257,20 @@ class Level(object):
 					ball = Ball(x,y)
 					self.ball = ball
 					self.all_sprites.add(self.ball)
+				elif col == "T":
+					block = Block(x,y, Block.one_hit, xl=False, test=True)
+					self.blocks.add(block)
+					self.all_sprites.add(block)
+				elif col == " ":
+					pass
+				else:
+					raise NotImplementedError
 				if col == "/":
-					x += self.halfcol
-				else: 
-					x += pixelx
+					x -= self.halfcol
+				x += pixelx
 			y += pixely
 			x = 0
-		Level.block_count = len(self.blocks)
+		Block.count = len(self.blocks)
 
 	def clear_level(self):
 		self.level_layout = None
@@ -313,8 +280,6 @@ class Level(object):
 		self.ball_count = Ball.count
 		self.ui_display.display_ball_count()
 		self.all_sprites.add(self.ui_display.all_sprites)
-
-
 
 class Display_Score(object):
 	score = 0
@@ -345,7 +310,10 @@ class UI_Display(object):
 		self.pause_overlay = self.build_pause_overlay()
 		self.pause_text = Display_Text(64,"GAME PAUSED", (800, 300))
 		self.pause_message = Display_Text(48,'Press "P" to Resume', (800, 500))
-		self.blocks_left = Display_Text(32, "Blocks Remaining: " + str(Level.block_count), (800, 600))
+		self.blocks_left = Display_Text(32, "Blocks Remaining: " + str(Block.count), (800, 600))
+		self.cd1 = Display_Text(64,"1", (800, 400))
+		self.cd2 = Display_Text(64,"2", (800, 400))
+		self.cd3 = Display_Text(64,"3", (800, 400))
 		self.display_score = Display_Score()
 		self.score_text = self.display_score.str_value
 		self.score = Display_Text(32, self.score_text, (1550, 50), True)
@@ -366,16 +334,16 @@ class UI_Display(object):
 		self.display_score.update()
 		self.score_text = self.display_score.str_value
 		self.score = Display_Text(32, self.score_text, (1550, 50), True)
-		self.blocks_left = Display_Text(32, "Blocks Remaining: " + str(Level.block_count), (800, 600))
+		self.blocks_left = Display_Text(32, "Blocks Remaining: " + str(Block.count), (800, 600))
 
 	def build_display(self):
 		self.display_ball_count()
 
 	def build_pause_overlay(self):
-		self.pause_overlay = pygame.Surface(screen_size)
-		self.pause_overlay.set_alpha(128)
-		self.pause_overlay.fill((255,200,200))
-		return self.pause_overlay
+		pause_overlay = pygame.Surface(screen_size)
+		pause_overlay.set_alpha(128)
+		pause_overlay.fill((255,200,200))
+		return pause_overlay
 
 class Display_Text(object):
 	def __init__(self, size, text, center_tuple, is_right=False):
@@ -388,20 +356,20 @@ class Display_Text(object):
 		self.text_rect = self.create_text_rect()
 
 	def create_font(self):
-		self.font = pygame.font.Font('XeroxSerifWideBold.ttf',self.font_size)
-		return self.font
+		font = pygame.font.Font('XeroxSerifWideBold.ttf',self.font_size)
+		return font
 
 	def create_text_rect(self):
 		if self.is_right:
-			self.text_rect = self.rendered_text.get_rect(midright=self.tuple)
-			return self.text_rect
+			text_rect = self.rendered_text.get_rect(midright=self.tuple)
+			return text_rect
 		else:
-			self.text_rect = self.rendered_text.get_rect(center=self.tuple)
-			return self.text_rect
+			text_rect = self.rendered_text.get_rect(center=self.tuple)
+			return text_rect
 
 	def render_font(self):
-		self.rendered_text = self.font.render(self.text, True, (255,255,255))
-		return self.rendered_text
+		rendered_text = self.font.render(self.text, True, (255,255,255))
+		return rendered_text
 
 class Display_Ball(pygame.sprite.Sprite):
 	def __init__(self, posx, posy):
@@ -425,6 +393,8 @@ class App(object):
 		self.level.build_level()
 		self.level.ui_display.build_display()
 		self.paused = False
+		self.countdown = False
+		self.start_ticks = pygame.time.get_ticks()
 
 	def event_loop(self):
 		for event in pygame.event.get():
@@ -445,11 +415,41 @@ class App(object):
 
 	def pause(self):
 		self.paused = True
-		self.level.ui_display.update()
+		self.static_screen_update()
 		self.screen.blit(self.level.ui_display.pause_overlay, (0,0))
 		self.screen.blit(self.level.ui_display.pause_text.rendered_text, self.level.ui_display.pause_text.text_rect)	
 		self.screen.blit(self.level.ui_display.pause_message.rendered_text, self.level.ui_display.pause_message.text_rect)	
 		self.screen.blit(self.level.ui_display.blocks_left.rendered_text, self.level.ui_display.blocks_left.text_rect)
+
+	def start_countdown(self):
+		self.start_ticks = pygame.time.get_ticks()
+		self.countdown = True
+		Ball.lost = False
+
+	def countdown_loop(self):
+		self.level.ui_display.update()
+		self.screen.fill((0,0,0))
+		self.level.all_sprites.draw(self.screen)
+		seconds = (pygame.time.get_ticks() - self.start_ticks) / 1000
+		if seconds < 1:
+			pass
+		elif seconds < 2:
+			self.screen.blit(self.level.background, self.level.ui_display.cd3.text_rect, area=self.level.ui_display.cd3.text_rect)
+			self.screen.blit(self.level.ui_display.cd3.rendered_text, self.level.ui_display.cd3.text_rect)
+		elif 2 <= seconds < 3:
+			self.screen.blit(self.level.background, self.level.ui_display.cd2.text_rect, area=self.level.ui_display.cd3.text_rect)
+			self.screen.blit(self.level.ui_display.cd2.rendered_text, self.level.ui_display.cd2.text_rect)
+		elif 3 <= seconds < 4:
+			self.screen.blit(self.level.background, self.level.ui_display.cd1.text_rect, area=self.level.ui_display.cd2.text_rect)
+			self.screen.blit(self.level.ui_display.cd1.rendered_text, self.level.ui_display.cd1.text_rect)
+		else:
+			print("end countdown loop")
+			self.countdown = False
+
+	def static_screen_update(self):
+		self.level.ui_display.update()
+		self.screen.fill((0,0,0))
+		self.level.all_sprites.draw(self.screen)
 
 	def paused_event_loop(self):
 		for event in pygame.event.get():
@@ -457,32 +457,52 @@ class App(object):
 				pygame.quit()
 			if event.type == pygame.KEYDOWN and event.key == pygame.K_p:
 				self.paused = False
+				self.update_frame()
+				self.start_countdown()
+
+	def next_level(self):
+		if self.current_level <= len(bblevels):	
+			Ball.count = 3
+			self.level.clear_level()
+			self.current_level += 1
+			self.level.choose_level(self.current_level)
+			self.level.build_level()
+			self.countdown = True
 
 	def update(self):
 		if not self.paused:
-			self.level.ui_display.update()
-			self.level.all_sprites.update()
-			self.level.collision_check()
-			self.screen.blit(self.level.background, (0,0))
-			pygame.draw.rect(self.screen, (0,0,0), self.level.ui_display.score.text_rect)
-			self.screen.blit(self.level.ui_display.score.rendered_text, self.level.ui_display.score.text_rect)
-			self.level.all_sprites.draw(self.screen)
+			if not self.countdown:
+				self.update_frame()
 		pygame.display.flip()
+
+	def update_frame(self):
+		self.level.ui_display.update()
+		self.level.all_sprites.update()
+		self.level.collision_check()
+		self.screen.blit(self.level.background, (0,0))
+		pygame.draw.rect(self.screen, (0,0,0), self.level.ui_display.score.text_rect)
+		self.screen.blit(self.level.ui_display.score.rendered_text, self.level.ui_display.score.text_rect)
+		self.level.all_sprites.draw(self.screen)
 
 	def main_loop(self):
 		self.clock.tick(self.fps)
 		while not self.done:
 			if self.paused:
+				self.pause()
+				self.countdown = False
 				self.paused_event_loop()
+			elif Ball.lost:
+				self.event_loop()
+				self.start_countdown()
+			elif self.countdown:
+				self.paused = False
+				self.event_loop()
+				self.countdown_loop()
 			else:
 				self.event_loop()
 			self.update()
-			if Level.block_count == 0:
-				Ball.count = 3
-				self.level.clear_level()
-				self.current_level += 1
-				self.level.choose_level(self.current_level)
-				self.level.build_level()
+			if Block.count == 0:
+				self.next_level()
 			App.dt = self.clock.tick(self.fps)/1000.0
 
 def main():
