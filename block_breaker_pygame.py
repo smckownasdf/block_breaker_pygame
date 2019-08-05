@@ -119,7 +119,7 @@ class Paddle(pygame.sprite.Sprite):
 		self.image = self.create_paddle()
 		self.rect = self.image.get_rect(center=(posx, posy))
 		self.true_pos = list(self.rect.center)
-		self.move_speed = 20
+		self.move_speed = 8
 		self.screen = pygame.display.get_surface()
 		self.screen_rect = self.screen.get_rect()
 
@@ -203,6 +203,7 @@ class Level(object):
 		self.level_layout = None
 		self.background = self.create_background()
 		self.ball = None
+		self.paddle = None
 		self.paddles = pygame.sprite.Group()
 		self.blocks = pygame.sprite.Group()
 		self.all_sprites = pygame.sprite.Group()
@@ -236,7 +237,6 @@ class Level(object):
 		y = 0
 		for row in self.level_layout:
 			for col in row:
-				half = False
 				if col == "1":
 					block = Block(x,y, Block.one_hit)
 					self.blocks.add(block)
@@ -251,6 +251,7 @@ class Level(object):
 					self.all_sprites.add(block)
 				elif col == "P":
 					paddle = Paddle(x,y)
+					self.paddle = paddle
 					self.all_sprites.add(paddle)
 					self.paddles.add(paddle)
 				elif col == "B":
@@ -264,7 +265,7 @@ class Level(object):
 				elif col == " ":
 					pass
 				else:
-					raise NotImplementedError
+					pass
 				if col == "/":
 					x -= self.halfcol
 				x += pixelx
@@ -385,7 +386,7 @@ class App(object):
 		self.screen = pygame.display.get_surface()
 		self.screen_rect = self.screen.get_rect()
 		self.clock = pygame.time.Clock()
-		self.fps = 120
+		self.fps = 200
 		self.done = False
 		self.current_level = 1
 		self.level = Level()
@@ -395,6 +396,8 @@ class App(object):
 		self.paused = False
 		self.countdown = False
 		self.start_ticks = pygame.time.get_ticks()
+		self.auto_play = True
+
 
 	def event_loop(self):
 		for event in pygame.event.get():
@@ -412,6 +415,9 @@ class App(object):
 					App.pressed_left = False
 				elif event.key == pygame.K_RIGHT:
 					App.pressed_right = False
+
+	def auto_paddle(self):
+		self.level.paddle.rect.centerx = self.level.ball.rect.centerx
 
 	def pause(self):
 		self.paused = True
@@ -476,6 +482,8 @@ class App(object):
 	def update_frame(self):
 		self.level.ui_display.update()
 		self.level.all_sprites.update()
+		if self.auto_play:
+			self.auto_paddle()
 		self.level.collision_check()
 		self.screen.blit(self.level.background, (0,0))
 		pygame.draw.rect(self.screen, (0,0,0), self.level.ui_display.score.text_rect)
