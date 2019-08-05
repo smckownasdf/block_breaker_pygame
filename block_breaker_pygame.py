@@ -427,9 +427,7 @@ class App(object):
 		Ball.lost = False
 
 	def countdown_loop(self):
-		self.level.ui_display.update()
-		self.screen.fill((0,0,0))
-		self.level.all_sprites.draw(self.screen)
+		self.static_screen_update()
 		seconds = (pygame.time.get_ticks() - self.start_ticks) / 1000
 		if seconds < 1:
 			pass
