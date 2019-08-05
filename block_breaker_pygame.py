@@ -1,5 +1,5 @@
 import sys, pygame
-from bblevels import levels as bblevels
+from bblevels import levels as bblevels , bonus_time as bonus_time
 
 # Global Variables
 screen_size = width, height = 1600, 800
@@ -204,6 +204,7 @@ class Level(object):
 		self.background = self.create_background()
 		self.ball = None
 		self.paddle = None
+		self.level_name = None
 		self.paddles = pygame.sprite.Group()
 		self.blocks = pygame.sprite.Group()
 		self.all_sprites = pygame.sprite.Group()
@@ -226,11 +227,14 @@ class Level(object):
 
 	def choose_level(self, level=1):
 		if level == 1:
-			self.level_layout = bblevels.get("leveltest")
+			self.level_name = "test"
 		if level == 2:
-			self.level_layout = bblevels.get("level1")
+			self.level_name = "level1"
 		if level == 3:
-			self.level_layout = bblevels.get("level2")
+			self.level_name = "level2"
+		if level == 4:
+			self.level_name = "level3"
+		self.level_layout = bblevels.get(self.level_name)
 
 	def build_level(self):
 		x = 0
@@ -280,7 +284,15 @@ class Level(object):
 		self.all_sprites.empty()
 		self.ball_count = Ball.count
 		self.ui_display.display_ball_count()
+		self.add_bonus()
+		self.ui_display.play_timer.restart_timer()
 		self.all_sprites.add(self.ui_display.all_sprites)
+
+	def add_bonus(self):
+		time = bonus_time.get(self.level_name)
+		if self.ui_display.play_timer.current_time < time:
+			bonus = int((time - self.ui_display.play_timer.current_time)/300)
+			Display_Score.score += bonus
 
 class Display_Score(object):
 	score = 0
@@ -315,6 +327,7 @@ class UI_Display(object):
 		self.cd1 = Display_Text(64,"1", (800, 400))
 		self.cd2 = Display_Text(64,"2", (800, 400))
 		self.cd3 = Display_Text(64,"3", (800, 400))
+		self.play_timer = Play_Timer()
 		self.display_score = Display_Score()
 		self.score_text = self.display_score.str_value
 		self.score = Display_Text(32, self.score_text, (1550, 50), True)
@@ -333,9 +346,16 @@ class UI_Display(object):
 		if self.ball_count == 0:
 			self.ball1.kill()
 		self.display_score.update()
+		self.play_timer.update()
+		self.update_display_score()
+		self.update_blocks_remaining()
+
+	def update_blocks_remaining(self):
+		self.blocks_left = Display_Text(32, "Blocks Remaining: " + str(Block.count), (800, 600))
+
+	def update_display_score(self):	
 		self.score_text = self.display_score.str_value
 		self.score = Display_Text(32, self.score_text, (1550, 50), True)
-		self.blocks_left = Display_Text(32, "Blocks Remaining: " + str(Block.count), (800, 600))
 
 	def build_display(self):
 		self.display_ball_count()
@@ -372,6 +392,50 @@ class Display_Text(object):
 		rendered_text = self.font.render(self.text, True, (255,255,255))
 		return rendered_text
 
+class Play_Timer(object):
+	def __init__(self):
+		self.font_size = 24
+		self.font = pygame.font.Font('XeroxSerifWideBold.ttf', self.font_size)
+		self.rendered_time = None
+		self.rect = None
+		self.clock = pygame.time.Clock() 
+		self.start_ticks = self.clock.get_time()
+		self.current_ticks = self.clock.get_time()
+
+	def restart_timer(self):
+		self.start_ticks = self.clock.get_time()
+		self.current_ticks = self.clock.get_time()
+
+	def update_time(self):
+		self.current_ticks += self.clock.get_time()
+		self.current_time = self.current_ticks - self.start_ticks
+
+	def string_time(self):
+		current_minutes = str(int((self.current_time % 600000)/60000)).zfill(2)
+		raw_seconds = int((self.current_time % 600000)/1000)
+		x = 1
+		if raw_seconds >= 60*x:
+			raw_seconds = raw_seconds - 60*x
+			x += 1
+		current_seconds = str(raw_seconds).zfill(2)
+		current_decimal = str(int((self.current_time % 1000)/10)).zfill(2)
+		return f"{current_minutes}:{current_seconds}:{current_decimal}"
+
+	def pause(self):
+		self.start_ticks += self.clock.get_time()
+
+	def build_display(self):
+		text = self.string_time()
+		display_time = Display_Text(self.font_size, text, (1550,100), is_right=True)
+		self.rect = display_time.text_rect
+		self.rendered_time = display_time.rendered_text
+
+	def update(self):
+		self.update_time()
+		self.string_time()
+		self.build_display()
+		self.clock.tick()
+
 class Display_Ball(pygame.sprite.Sprite):
 	def __init__(self, posx, posy):
 		pygame.sprite.Sprite.__init__(self) # Call Sprite initializer
@@ -397,7 +461,6 @@ class App(object):
 		self.countdown = False
 		self.start_ticks = pygame.time.get_ticks()
 		self.auto_play = True
-
 
 	def event_loop(self):
 		for event in pygame.event.get():
@@ -451,9 +514,13 @@ class App(object):
 			self.countdown = False
 
 	def static_screen_update(self):
-		self.level.ui_display.update()
 		self.screen.fill((0,0,0))
+		self.level.ui_display.update()
 		self.level.all_sprites.draw(self.screen)
+		pygame.draw.rect(self.screen, (0,0,0), self.level.ui_display.score.text_rect)
+		self.screen.blit(self.level.ui_display.score.rendered_text, self.level.ui_display.score.text_rect)
+		pygame.draw.rect(self.screen, (0,0,0), self.level.ui_display.play_timer.rect)
+		self.screen.blit(self.level.ui_display.play_timer.rendered_time, self.level.ui_display.play_timer.rect)
 
 	def paused_event_loop(self):
 		for event in pygame.event.get():
@@ -461,7 +528,6 @@ class App(object):
 				pygame.quit()
 			if event.type == pygame.KEYDOWN and event.key == pygame.K_p:
 				self.paused = False
-				self.update_frame()
 				self.start_countdown()
 
 	def next_level(self):
@@ -488,6 +554,8 @@ class App(object):
 		self.screen.blit(self.level.background, (0,0))
 		pygame.draw.rect(self.screen, (0,0,0), self.level.ui_display.score.text_rect)
 		self.screen.blit(self.level.ui_display.score.rendered_text, self.level.ui_display.score.text_rect)
+		pygame.draw.rect(self.screen, (0,0,0), self.level.ui_display.play_timer.rect)
+		self.screen.blit(self.level.ui_display.play_timer.rendered_time, self.level.ui_display.play_timer.rect)
 		self.level.all_sprites.draw(self.screen)
 
 	def main_loop(self):
@@ -497,6 +565,7 @@ class App(object):
 				self.pause()
 				self.countdown = False
 				self.paused_event_loop()
+				self.level.ui_display.play_timer.pause()
 			elif Ball.lost:
 				self.event_loop()
 				self.start_countdown()
@@ -504,6 +573,7 @@ class App(object):
 				self.paused = False
 				self.event_loop()
 				self.countdown_loop()
+				self.level.ui_display.play_timer.pause()
 			else:
 				self.event_loop()
 			self.update()
