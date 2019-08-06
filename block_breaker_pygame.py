@@ -195,7 +195,6 @@ class Block(pygame.sprite.Sprite):
 			self.kill()
 			Display_Score.score += 500
 			Block.count -= 1
-			print("Block count: " + str(Block.count))
 
 class Level(object):
 	name = None
@@ -532,7 +531,6 @@ class App(object):
 			self.screen.blit(self.level.background, self.level.ui_display.cd1.text_rect, area=self.level.ui_display.cd2.text_rect)
 			self.screen.blit(self.level.ui_display.cd1.rendered_text, self.level.ui_display.cd1.text_rect)
 		else:
-			print("end countdown loop")
 			self.countdown = False
 
 	def static_screen_update(self):
