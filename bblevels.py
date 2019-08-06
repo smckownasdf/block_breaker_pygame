@@ -2,35 +2,6 @@
 
 
 levels = {
-	"test":
-	[
-		"                          ",
-		"                  B       ",
-		"                          ",
-		"                          ",
-		"                          ",
-		"                          ",
-		"          T   ",
-		"          T   ",
-		"          T   ",
-		"                          ",
-		"                          ",
-		"                          ",
-		"                          ",
-		"                          ",
-		"                          ",
-		"                          ",
-		"                          ",
-		"                          ",
-		"                          ",
-		"                          ",
-		"                          ",
-		"                          ",
-		"                          ",
-		"                          ",
-		"          P               ",
-		"                          ",
-	],
 	"level1":
 	[
 		"                          ",
@@ -124,7 +95,6 @@ levels = {
 # time_bonus key:value
 # value is time needed to receive any bonus, in milliseconds 
 bonus_time = {
-	"test"		: 15000,
 	"level1"	: 120000,
 	"level2"	: 120000,
 	"level3"	: 150000,

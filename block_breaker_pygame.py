@@ -198,13 +198,14 @@ class Block(pygame.sprite.Sprite):
 			print("Block count: " + str(Block.count))
 
 class Level(object):
+	name = None
+	current_time = None
 	def __init__(self):
 		self.halfcol = pixelx/2
 		self.level_layout = None
 		self.background = self.create_background()
 		self.ball = None
 		self.paddle = None
-		self.level_name = None
 		self.paddles = pygame.sprite.Group()
 		self.blocks = pygame.sprite.Group()
 		self.all_sprites = pygame.sprite.Group()
@@ -227,14 +228,14 @@ class Level(object):
 
 	def choose_level(self, level=1):
 		if level == 1:
-			self.level_name = "test"
+			Level.name = "level1"
 		if level == 2:
-			self.level_name = "level1"
+			Level.name = "level2"
 		if level == 3:
-			self.level_name = "level2"
-		if level == 4:
-			self.level_name = "level3"
-		self.level_layout = bblevels.get(self.level_name)
+			Level.name = "level3"
+		if level > 3:
+			raise NotImplementedError
+		self.level_layout = bblevels.get(Level.name)
 
 	def build_level(self):
 		x = 0
@@ -289,10 +290,16 @@ class Level(object):
 		self.all_sprites.add(self.ui_display.all_sprites)
 
 	def add_bonus(self):
-		time = bonus_time.get(self.level_name)
+		time = bonus_time.get(Level.name)
 		if self.ui_display.play_timer.current_time < time:
 			bonus = int((time - self.ui_display.play_timer.current_time)/300)
 			Display_Score.score += bonus
+
+	def update(self):
+		Level.current_time = self.ui_display.play_timer.current_time
+		self.ui_display.update()
+		self.collision_check()
+		self.all_sprites.update()
 
 class Display_Score(object):
 	score = 0
@@ -367,12 +374,13 @@ class UI_Display(object):
 		return pause_overlay
 
 class Display_Text(object):
-	def __init__(self, size, text, center_tuple, is_right=False):
+	def __init__(self, size, text, center_tuple, is_right=False, color=(255,255,255)):
 		self.font_size = size
-		self.font = self.create_font()
 		self.text = text
-		self.is_right = is_right
 		self.tuple = center_tuple
+		self.is_right = is_right
+		self.color = color
+		self.font = self.create_font()
 		self.rendered_text = self.render_font()
 		self.text_rect = self.create_text_rect()
 
@@ -389,18 +397,22 @@ class Display_Text(object):
 			return text_rect
 
 	def render_font(self):
-		rendered_text = self.font.render(self.text, True, (255,255,255))
+		rendered_text = self.font.render(self.text, True, self.color)
 		return rendered_text
 
 class Play_Timer(object):
 	def __init__(self):
 		self.font_size = 24
 		self.font = pygame.font.Font('XeroxSerifWideBold.ttf', self.font_size)
+		self.white = (255,255,255)
+		self.yellow = (255,255,25)
+		self.red = (255,25,25)
 		self.rendered_time = None
 		self.rect = None
 		self.clock = pygame.time.Clock() 
 		self.start_ticks = self.clock.get_time()
 		self.current_ticks = self.clock.get_time()
+		self.current_time = self.clock.get_time()
 
 	def restart_timer(self):
 		self.start_ticks = self.clock.get_time()
@@ -424,16 +436,26 @@ class Play_Timer(object):
 	def pause(self):
 		self.start_ticks += self.clock.get_time()
 
-	def build_display(self):
+	def build_display(self, color):
 		text = self.string_time()
-		display_time = Display_Text(self.font_size, text, (1550,100), is_right=True)
+		display_time = Display_Text(self.font_size, text, (1550,100), is_right=True, color=color)
 		self.rect = display_time.text_rect
 		self.rendered_time = display_time.rendered_text
+
+	def change_color(self):
+		timer_goal = bonus_time.get(Level.name)
+		if((Level.current_time + 30000) < timer_goal):
+			color = self.white
+		elif(Level.current_time > timer_goal):
+			color = self.red
+		else:
+			color = self.yellow
+		return color
 
 	def update(self):
 		self.update_time()
 		self.string_time()
-		self.build_display()
+		self.build_display(self.change_color())
 		self.clock.tick()
 
 class Display_Ball(pygame.sprite.Sprite):
@@ -546,11 +568,9 @@ class App(object):
 		pygame.display.flip()
 
 	def update_frame(self):
-		self.level.ui_display.update()
-		self.level.all_sprites.update()
+		self.level.update()
 		if self.auto_play:
 			self.auto_paddle()
-		self.level.collision_check()
 		self.screen.blit(self.level.background, (0,0))
 		pygame.draw.rect(self.screen, (0,0,0), self.level.ui_display.score.text_rect)
 		self.screen.blit(self.level.ui_display.score.rendered_text, self.level.ui_display.score.text_rect)
