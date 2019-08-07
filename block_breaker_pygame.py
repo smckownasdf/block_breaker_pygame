@@ -220,10 +220,10 @@ class Level(object):
 			self.ball.bounce(objects)
 
 	def create_background(self):
-		self.background = pygame.Surface(screen_size)
-		self.background = self.background.convert()
-		self.background.fill((0,0,0))
-		return self.background
+		background = pygame.Surface(screen_size)
+		background = background.convert()
+		background.fill((0,0,0))
+		return background
 
 	def choose_level(self, level=1):
 		if level == 1:
@@ -300,24 +300,18 @@ class Level(object):
 		self.collision_check()
 		self.all_sprites.update()
 
-class Display_Score(object):
-	score = 0
+class Start_Menu(object):
 	def __init__(self):
-		self.num_value = Display_Score.score
-		self.zeroes = ""
-		self.zero_str = "0"
-		self.str_value = self.num_value_to_text()
+		self.title = Display_Text(128,"BLOCK BREAKER", (800, 450))
+		self.subtitle = Display_Text(48,"A PyGame Clone by Scott McKown", (800, 600))
+		self.instructions = Display_Text(32,"Press Spacebar to Begin", (800, 670))
+		self.background = self.create_background()
 
-	def num_value_to_text(self):
-		self.zeroes = ""
-		while (len(self.zeroes) + len(str(self.num_value)) < 7):
-			self.zeroes += self.zero_str
-		self.str_value = self.zeroes + str(self.num_value)
-		return self.str_value
-
-	def update(self):
-		self.num_value = Display_Score.score
-		self.num_value_to_text()
+	def create_background(self):
+		background = pygame.Surface(screen_size)
+		background = background.convert()
+		background.fill((0,0,0))
+		return background
 
 class UI_Display(object):
 	def __init__(self):
@@ -327,14 +321,14 @@ class UI_Display(object):
 		self.ball2 = Display_Ball(45,20)
 		self.ball3 = Display_Ball(70,20)
 		self.pause_overlay = self.build_pause_overlay()
-		self.pause_text = Display_Text(64,"GAME PAUSED", (800, 300))
-		self.pause_message = Display_Text(48,'Press "P" to Resume', (800, 500))
-		self.blocks_left = Display_Text(32, "Blocks Remaining: " + str(Block.count), (800, 600))
-		self.auto_toggle_off =  Display_Text(24, "Press A to Turn AutoPlay Off", (800,700))
-		self.auto_toggle_on = Display_Text(24, "Press A to Turn AutoPlay On", (800,700))
-		self.cd1 = Display_Text(64,"1", (800, 400))
-		self.cd2 = Display_Text(64,"2", (800, 400))
-		self.cd3 = Display_Text(64,"3", (800, 400))
+		self.pause_text = Display_Text(128,"GAME PAUSED", (800, 450), color=(255,25,230))
+		self.pause_message = Display_Text(48,'Press "P" to Resume', (800, 520), color=(255,25,230))
+		self.blocks_left = Display_Text(32, ("Blocks Remaining: " + str(Block.count)), (800, 670), color=(255,230,25))
+		self.auto_toggle_off =  Display_Text(24, "Press A to Turn AutoPlay Off", (800,700), color=(255,25,25))
+		self.auto_toggle_on = Display_Text(24, "Press A to Turn AutoPlay On", (800,700), color=(25,255,25))
+		self.cd1 = Display_Text(128,"1", (800, 400)) #cd = countdown. The fact that I decided to write this comment means I should probably rename the darn variable
+		self.cd2 = Display_Text(128,"2", (800, 400))
+		self.cd3 = Display_Text(128,"3", (800, 400))
 		self.play_timer = Play_Timer()
 		self.display_score = Display_Score()
 		self.score_text = self.display_score.str_value
@@ -363,7 +357,7 @@ class UI_Display(object):
 
 	def update_display_score(self):	
 		self.score_text = self.display_score.str_value
-		self.score = Display_Text(32, self.score_text, (1550, 50), True)
+		self.score = Display_Text(32, self.score_text, (1550, 50),is_right=True)
 
 	def build_display(self):
 		self.display_ball_count()
@@ -379,6 +373,7 @@ class Display_Text(object):
 		self.font_size = size
 		self.text = text
 		self.tuple = center_tuple
+		# center tuple becomes mid-right of text object when bool is_right == True
 		self.is_right = is_right
 		self.color = color
 		self.font = self.create_font()
@@ -400,6 +395,31 @@ class Display_Text(object):
 	def render_font(self):
 		rendered_text = self.font.render(self.text, True, self.color)
 		return rendered_text
+
+class Display_Score(object):
+	score = 0
+	def __init__(self):
+		self.num_value = Display_Score.score
+		self.zeroes = ""
+		self.zero_str = "0"
+		self.str_value = self.num_value_to_text()
+
+	def num_value_to_text(self):
+		self.zeroes = ""
+		while (len(self.zeroes) + len(str(self.num_value)) < 7):
+			self.zeroes += self.zero_str
+		self.str_value = self.zeroes + str(self.num_value)
+		return self.str_value
+
+	def update(self):
+		self.num_value = Display_Score.score
+		self.num_value_to_text()
+
+class Display_Ball(pygame.sprite.Sprite):
+	def __init__(self, posx, posy):
+		pygame.sprite.Sprite.__init__(self) # Call Sprite initializer
+		self.image = pygame.transform.scale(pygame.image.load("ball.png").convert(), (20,20)).convert_alpha()
+		self.rect = self.image.get_rect(center=(posx, posy))
 
 class Play_Timer(object):
 	def __init__(self):
@@ -459,12 +479,6 @@ class Play_Timer(object):
 		self.build_display(self.change_color())
 		self.clock.tick()
 
-class Display_Ball(pygame.sprite.Sprite):
-	def __init__(self, posx, posy):
-		pygame.sprite.Sprite.__init__(self) # Call Sprite initializer
-		self.image = pygame.transform.scale(pygame.image.load("ball.png").convert(), (20,20)).convert_alpha()
-		self.rect = self.image.get_rect(center=(posx, posy))
-
 class App(object):
 	pressed_left = False
 	pressed_right = False
@@ -473,16 +487,15 @@ class App(object):
 		self.screen = pygame.display.get_surface()
 		self.screen_rect = self.screen.get_rect()
 		self.clock = pygame.time.Clock()
+		self.level = None
+		self.start_ticks = pygame.time.get_ticks()
+		self.start_menu = Start_Menu()
 		self.fps = 200
-		self.done = False
 		self.current_level = 1
-		self.level = Level()
-		self.level.choose_level(self.current_level)
-		self.level.build_level()
-		self.level.ui_display.build_display()
+		self.done = False
+		self.started = False
 		self.paused = False
 		self.countdown = False
-		self.start_ticks = pygame.time.get_ticks()
 		self.auto_play = True
 
 	def event_loop(self):
@@ -501,6 +514,12 @@ class App(object):
 					App.pressed_left = False
 				elif event.key == pygame.K_RIGHT:
 					App.pressed_right = False
+
+	def start_game(self):
+		self.level = Level()
+		self.level.choose_level(self.current_level)
+		self.level.build_level()
+		self.level.ui_display.build_display()
 
 	def auto_paddle(self):
 		self.level.paddle.rect.centerx = self.level.ball.rect.centerx
@@ -561,6 +580,18 @@ class App(object):
 				else:
 					self.auto_play = True
 
+	def start_menu_loop(self):
+		for event in pygame.event.get():
+			if event.type == pygame.QUIT:
+				pygame.quit()
+			if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
+				self.start_game()
+				self.started = True
+
+	def update_start_menu(self):
+		self.screen.blit(self.start_menu.title.rendered_text, self.start_menu.title.text_rect)
+		self.screen.blit(self.start_menu.subtitle.rendered_text, self.start_menu.title.text_rect)
+		self.screen.blit(self.start_menu.instructions.rendered_text, self.start_menu.instructions.text_rect)
 
 	def next_level(self):
 		if self.current_level <= len(bblevels):	
@@ -593,24 +624,28 @@ class App(object):
 	def main_loop(self):
 		self.clock.tick(self.fps)
 		while not self.done:
-			if self.paused:
-				self.pause()
-				self.countdown = False
-				self.paused_event_loop()
-				self.level.ui_display.play_timer.pause()
-			elif Ball.lost:
-				self.event_loop()
-				self.start_countdown()
-			elif self.countdown:
-				self.paused = False
-				self.event_loop()
-				self.countdown_loop()
-				self.level.ui_display.play_timer.pause()
+			if not self.started:
+				self.start_menu_loop()
+				self.update_start_menu()
 			else:
-				self.event_loop()
-			self.update()
-			if Block.count == 0:
-				self.next_level()
+				if self.paused:
+					self.pause()
+					self.countdown = False
+					self.paused_event_loop()
+					self.level.ui_display.play_timer.pause()
+				elif Ball.lost:
+					self.event_loop()
+					self.start_countdown()
+				elif self.countdown:
+					self.paused = False
+					self.event_loop()
+					self.countdown_loop()
+					self.level.ui_display.play_timer.pause()
+				else:
+					self.event_loop()
+				self.update()
+				if Block.count == 0:
+					self.next_level()
 			App.dt = self.clock.tick(self.fps)/1000.0
 
 def main():
