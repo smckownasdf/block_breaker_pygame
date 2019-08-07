@@ -302,16 +302,25 @@ class Level(object):
 
 class Start_Menu(object):
 	def __init__(self):
-		self.title = Display_Text(128,"BLOCK BREAKER", (800, 450))
-		self.subtitle = Display_Text(48,"A PyGame Clone by Scott McKown", (800, 600))
-		self.instructions = Display_Text(32,"Press Spacebar to Begin", (800, 670))
+		self.title = Display_Text(128,"BLOCK BREAKER", (800, 300), color=(255,30,50))
+		self.subtitle = Display_Text(48,"A PyGame Clone by Scott McKown", (800, 400), color=(255,80,80))
+		self.instructions = Display_Text(32,"Press Spacebar to Begin", (800, 650), color=(30,255,50))
 		self.background = self.create_background()
+		self.screen = pygame.display.get_surface()
+		self.screen_rect = self.screen.get_rect()
 
 	def create_background(self):
 		background = pygame.Surface(screen_size)
 		background = background.convert()
 		background.fill((0,0,0))
 		return background
+
+	def update(self):
+		self.screen.fill((0,0,0))
+		self.screen.blit(self.title.rendered_text, self.title.text_rect)
+		self.screen.blit(self.subtitle.rendered_text, self.subtitle.text_rect)
+		self.screen.blit(self.instructions.rendered_text, self.instructions.text_rect)
+		pygame.display.flip()
 
 class UI_Display(object):
 	def __init__(self):
@@ -588,11 +597,6 @@ class App(object):
 				self.start_game()
 				self.started = True
 
-	def update_start_menu(self):
-		self.screen.blit(self.start_menu.title.rendered_text, self.start_menu.title.text_rect)
-		self.screen.blit(self.start_menu.subtitle.rendered_text, self.start_menu.title.text_rect)
-		self.screen.blit(self.start_menu.instructions.rendered_text, self.start_menu.instructions.text_rect)
-
 	def next_level(self):
 		if self.current_level <= len(bblevels):	
 			Ball.count = 3
@@ -625,8 +629,8 @@ class App(object):
 		self.clock.tick(self.fps)
 		while not self.done:
 			if not self.started:
+				self.start_menu.update()
 				self.start_menu_loop()
-				self.update_start_menu()
 			else:
 				if self.paused:
 					self.pause()
