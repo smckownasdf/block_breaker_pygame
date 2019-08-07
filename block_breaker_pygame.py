@@ -330,6 +330,8 @@ class UI_Display(object):
 		self.pause_text = Display_Text(64,"GAME PAUSED", (800, 300))
 		self.pause_message = Display_Text(48,'Press "P" to Resume', (800, 500))
 		self.blocks_left = Display_Text(32, "Blocks Remaining: " + str(Block.count), (800, 600))
+		self.auto_toggle_off =  Display_Text(24, "Press A to Turn AutoPlay Off", (800,700))
+		self.auto_toggle_on = Display_Text(24, "Press A to Turn AutoPlay On", (800,700))
 		self.cd1 = Display_Text(64,"1", (800, 400))
 		self.cd2 = Display_Text(64,"2", (800, 400))
 		self.cd3 = Display_Text(64,"3", (800, 400))
@@ -510,6 +512,10 @@ class App(object):
 		self.screen.blit(self.level.ui_display.pause_text.rendered_text, self.level.ui_display.pause_text.text_rect)	
 		self.screen.blit(self.level.ui_display.pause_message.rendered_text, self.level.ui_display.pause_message.text_rect)	
 		self.screen.blit(self.level.ui_display.blocks_left.rendered_text, self.level.ui_display.blocks_left.text_rect)
+		if self.auto_play:
+			self.screen.blit(self.level.ui_display.auto_toggle_off.rendered_text, self.level.ui_display.auto_toggle_off.text_rect)
+		else:
+			self.screen.blit(self.level.ui_display.auto_toggle_on.rendered_text, self.level.ui_display.auto_toggle_on.text_rect)
 
 	def start_countdown(self):
 		self.start_ticks = pygame.time.get_ticks()
@@ -549,12 +555,20 @@ class App(object):
 			if event.type == pygame.KEYDOWN and event.key == pygame.K_p:
 				self.paused = False
 				self.start_countdown()
+			if event.type == pygame.KEYDOWN and event.key == pygame.K_a:
+				if self.auto_play:
+					self.auto_play = False
+				else:
+					self.auto_play = True
+
 
 	def next_level(self):
 		if self.current_level <= len(bblevels):	
 			Ball.count = 3
 			self.level.clear_level()
 			self.current_level += 1
+			if self.current_level > 3:
+				self.current_level = 1
 			self.level.choose_level(self.current_level)
 			self.level.build_level()
 			self.countdown = True
