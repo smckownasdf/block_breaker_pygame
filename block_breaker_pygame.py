@@ -326,6 +326,7 @@ class Results_Screen(object):
 	def __init__(self):
 		self.game_over_title = Display_Text(128,"GAME OVER", (800, 300), color=(255,50,50))
 		self.instructions = Display_Text(32,"Press Spacebar to Play Again", (800, 650), color=(30,255,50))
+		self.final_score = Display_Text(64,"Final Score: "+str(Display_Score.score), (800, 450)) 
 		self.background = self.create_background()
 		self.screen = pygame.display.get_surface()
 		self.screen_rect = self.screen.get_rect()
@@ -339,6 +340,7 @@ class Results_Screen(object):
 	def update(self):
 		self.screen.fill((0,0,0))
 		self.screen.blit(self.game_over_title.rendered_text, self.game_over_title.text_rect)
+		self.screen.blit(self.final_score.rendered_text, self.final_score.text_rect)
 		self.screen.blit(self.instructions.rendered_text, self.instructions.text_rect)
 		pygame.display.flip()
 
@@ -672,6 +674,7 @@ class App(object):
 					self.level.ui_display.play_timer.pause()
 				elif Ball.lost:
 					if Ball.count == 0:
+						self.results_screen = Results_Screen()
 						self.finished = True
 					else:
 						self.event_loop()
