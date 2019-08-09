@@ -302,8 +302,8 @@ class Level(object):
 
 class Start_Menu(object):
 	def __init__(self):
-		self.title = Display_Text(128,"BLOCK BREAKER", (800, 300), color=(255,30,50))
-		self.subtitle = Display_Text(48,"A PyGame Clone by Scott McKown", (800, 400), color=(255,80,80))
+		self.title = Display_Text(128,"BLOCK BREAKER", (800, 300), color=(255,50,50))
+		self.subtitle = Display_Text(48,"A Clone by Scott McKown, Built Using PyGame", (800, 400), color=(255,80,80))
 		self.instructions = Display_Text(32,"Press Spacebar to Begin", (800, 650), color=(30,255,50))
 		self.background = self.create_background()
 		self.screen = pygame.display.get_surface()
@@ -319,6 +319,26 @@ class Start_Menu(object):
 		self.screen.fill((0,0,0))
 		self.screen.blit(self.title.rendered_text, self.title.text_rect)
 		self.screen.blit(self.subtitle.rendered_text, self.subtitle.text_rect)
+		self.screen.blit(self.instructions.rendered_text, self.instructions.text_rect)
+		pygame.display.flip()
+
+class Results_Screen(object):
+	def __init__(self):
+		self.game_over_title = Display_Text(128,"GAME OVER", (800, 300), color=(255,50,50))
+		self.instructions = Display_Text(32,"Press Spacebar to Play Again", (800, 650), color=(30,255,50))
+		self.background = self.create_background()
+		self.screen = pygame.display.get_surface()
+		self.screen_rect = self.screen.get_rect()
+
+	def create_background(self):
+		background = pygame.Surface(screen_size)
+		background = background.convert()
+		background.fill((0,0,0))
+		return background
+
+	def update(self):
+		self.screen.fill((0,0,0))
+		self.screen.blit(self.game_over_title.rendered_text, self.game_over_title.text_rect)
 		self.screen.blit(self.instructions.rendered_text, self.instructions.text_rect)
 		pygame.display.flip()
 
@@ -474,9 +494,9 @@ class Play_Timer(object):
 
 	def change_color(self):
 		timer_goal = bonus_time.get(Level.name)
-		if((Level.current_time + 30000) < timer_goal):
+		if((self.current_time + 30000) < timer_goal):
 			color = self.white
-		elif(Level.current_time > timer_goal):
+		elif(self.current_time > timer_goal):
 			color = self.red
 		else:
 			color = self.yellow
@@ -499,13 +519,15 @@ class App(object):
 		self.level = None
 		self.start_ticks = pygame.time.get_ticks()
 		self.start_menu = Start_Menu()
+		self.results_screen = Results_Screen()
 		self.fps = 200
 		self.current_level = 1
 		self.done = False
 		self.started = False
+		self.finished = False
 		self.paused = False
 		self.countdown = False
-		self.auto_play = True
+		self.auto_play = False
 
 	def event_loop(self):
 		for event in pygame.event.get():
@@ -524,11 +546,56 @@ class App(object):
 				elif event.key == pygame.K_RIGHT:
 					App.pressed_right = False
 
+	def paused_event_loop(self):
+		for event in pygame.event.get():
+			if event.type == pygame.QUIT:
+				pygame.quit()
+			if event.type == pygame.KEYDOWN and event.key == pygame.K_p:
+				self.paused = False
+				self.start_countdown()
+			if event.type == pygame.KEYDOWN and event.key == pygame.K_a:
+				if self.auto_play:
+					self.auto_play = False
+				else:
+					self.auto_play = True
+
+	def menu_loop(self):
+		for event in pygame.event.get():
+			if event.type == pygame.QUIT:
+				pygame.quit()
+			if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
+				self.started = True
+				self.finished = False
+				self.reset_game()
+				self.start_game()
+
+	def countdown_counter(self):
+		self.static_screen_update()
+		seconds = (pygame.time.get_ticks() - self.start_ticks) / 1000
+		if seconds < 1:
+			pass
+		elif seconds < 2:
+			self.screen.blit(self.level.background, self.level.ui_display.cd3.text_rect, area=self.level.ui_display.cd3.text_rect)
+			self.screen.blit(self.level.ui_display.cd3.rendered_text, self.level.ui_display.cd3.text_rect)
+		elif 2 <= seconds < 3:
+			self.screen.blit(self.level.background, self.level.ui_display.cd2.text_rect, area=self.level.ui_display.cd3.text_rect)
+			self.screen.blit(self.level.ui_display.cd2.rendered_text, self.level.ui_display.cd2.text_rect)
+		elif 3 <= seconds < 4:
+			self.screen.blit(self.level.background, self.level.ui_display.cd1.text_rect, area=self.level.ui_display.cd2.text_rect)
+			self.screen.blit(self.level.ui_display.cd1.rendered_text, self.level.ui_display.cd1.text_rect)
+		else:
+			self.countdown = False
+
 	def start_game(self):
 		self.level = Level()
 		self.level.choose_level(self.current_level)
 		self.level.build_level()
 		self.level.ui_display.build_display()
+		self.start_countdown()
+
+	def reset_game(self):
+		self.level = 1
+		Ball.lost = False
 
 	def auto_paddle(self):
 		self.level.paddle.rect.centerx = self.level.ball.rect.centerx
@@ -550,23 +617,6 @@ class App(object):
 		self.countdown = True
 		Ball.lost = False
 
-	def countdown_loop(self):
-		self.static_screen_update()
-		seconds = (pygame.time.get_ticks() - self.start_ticks) / 1000
-		if seconds < 1:
-			pass
-		elif seconds < 2:
-			self.screen.blit(self.level.background, self.level.ui_display.cd3.text_rect, area=self.level.ui_display.cd3.text_rect)
-			self.screen.blit(self.level.ui_display.cd3.rendered_text, self.level.ui_display.cd3.text_rect)
-		elif 2 <= seconds < 3:
-			self.screen.blit(self.level.background, self.level.ui_display.cd2.text_rect, area=self.level.ui_display.cd3.text_rect)
-			self.screen.blit(self.level.ui_display.cd2.rendered_text, self.level.ui_display.cd2.text_rect)
-		elif 3 <= seconds < 4:
-			self.screen.blit(self.level.background, self.level.ui_display.cd1.text_rect, area=self.level.ui_display.cd2.text_rect)
-			self.screen.blit(self.level.ui_display.cd1.rendered_text, self.level.ui_display.cd1.text_rect)
-		else:
-			self.countdown = False
-
 	def static_screen_update(self):
 		self.screen.fill((0,0,0))
 		self.level.ui_display.update()
@@ -575,27 +625,6 @@ class App(object):
 		self.screen.blit(self.level.ui_display.score.rendered_text, self.level.ui_display.score.text_rect)
 		pygame.draw.rect(self.screen, (0,0,0), self.level.ui_display.play_timer.rect)
 		self.screen.blit(self.level.ui_display.play_timer.rendered_time, self.level.ui_display.play_timer.rect)
-
-	def paused_event_loop(self):
-		for event in pygame.event.get():
-			if event.type == pygame.QUIT:
-				pygame.quit()
-			if event.type == pygame.KEYDOWN and event.key == pygame.K_p:
-				self.paused = False
-				self.start_countdown()
-			if event.type == pygame.KEYDOWN and event.key == pygame.K_a:
-				if self.auto_play:
-					self.auto_play = False
-				else:
-					self.auto_play = True
-
-	def start_menu_loop(self):
-		for event in pygame.event.get():
-			if event.type == pygame.QUIT:
-				pygame.quit()
-			if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
-				self.start_game()
-				self.started = True
 
 	def next_level(self):
 		if self.current_level <= len(bblevels):	
@@ -606,7 +635,7 @@ class App(object):
 				self.current_level = 1
 			self.level.choose_level(self.current_level)
 			self.level.build_level()
-			self.countdown = True
+			self.start_countdown()
 
 	def update(self):
 		if not self.paused:
@@ -630,7 +659,10 @@ class App(object):
 		while not self.done:
 			if not self.started:
 				self.start_menu.update()
-				self.start_menu_loop()
+				self.menu_loop()
+			elif self.finished:
+				self.results_screen.update()
+				self.menu_loop()
 			else:
 				if self.paused:
 					self.pause()
@@ -638,12 +670,15 @@ class App(object):
 					self.paused_event_loop()
 					self.level.ui_display.play_timer.pause()
 				elif Ball.lost:
-					self.event_loop()
-					self.start_countdown()
+					if Ball.count == 0:
+						self.finished = True
+					else:
+						self.event_loop()
+						self.start_countdown()
 				elif self.countdown:
 					self.paused = False
 					self.event_loop()
-					self.countdown_loop()
+					self.countdown_counter()
 					self.level.ui_display.play_timer.pause()
 				else:
 					self.event_loop()
