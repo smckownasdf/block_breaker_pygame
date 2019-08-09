@@ -571,6 +571,7 @@ class App(object):
 
 	def countdown_counter(self):
 		self.static_screen_update()
+		self.level.paddle.update()
 		seconds = (pygame.time.get_ticks() - self.start_ticks) / 1000
 		if seconds < 1:
 			pass
