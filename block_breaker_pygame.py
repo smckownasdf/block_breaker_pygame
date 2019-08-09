@@ -598,6 +598,7 @@ class App(object):
 
 	def reset_game(self):
 		self.level = 1
+		Display_Score.score = 0
 		Ball.lost = False
 
 	def auto_paddle(self):
