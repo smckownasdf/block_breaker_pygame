@@ -1,4 +1,4 @@
-import sys, pygame
+import sys, pygame, csv
 from bblevels import levels as bblevels , bonus_time as bonus_time
 
 # Global Variables
@@ -324,12 +324,16 @@ class Start_Menu(object):
 
 class Results_Screen(object):
 	def __init__(self):
+		self.names = []
+		self.scores = []
 		self.game_over_title = Display_Text(128,"GAME OVER", (800, 300), color=(255,50,50))
-		self.instructions = Display_Text(32,"Press Spacebar to Play Again", (800, 650), color=(30,255,50))
-		self.final_score = Display_Text(64,"Final Score: "+str(Display_Score.score), (800, 450)) 
+		self.final_score = Display_Text(64,"Final Score: "+str(Display_Score.score), (800, 430)) 
 		self.background = self.create_background()
 		self.screen = pygame.display.get_surface()
 		self.screen_rect = self.screen.get_rect()
+		self.high_score = self.get_high_scores()
+		self.high_score_display = Display_Text(48,"High Score: "+str(self.high_score)+" by "+self.names[0], (800,480), color=(200,200,30))
+		self.instructions = Display_Text(32,"Press Spacebar to Play Again", (800, 650), color=(30,255,50))
 
 	def create_background(self):
 		background = pygame.Surface(screen_size)
@@ -337,10 +341,39 @@ class Results_Screen(object):
 		background.fill((0,0,0))
 		return background
 
+	def get_high_scores(self):
+		with open("highscore.csv", "r") as file:
+			csv_reader = csv.reader(file)
+			new_list = sorted(csv_reader, key=lambda row: row[1], reverse=True)[0:5]
+			for row in new_list:
+				self.scores.append(row[1])
+				self.names.append(row[0])
+		self.check_for_high_score()
+		return int(self.scores[0])
+
+	def check_for_high_score(self):
+		i = 0
+		for score in self.scores:
+			if Display_Score.score > int(score):
+				self.scores.insert(i, Display_Score.score)
+				self.names.insert(i, "You")
+				break
+			i += 1
+		self.write_scores_to_file()
+
+	def write_scores_to_file(self):
+		with open("highscore.csv","w") as file:
+			csv_writer = csv.writer(file)
+			i = 0
+			for scores in self.scores:
+				csv_writer.writerow([self.names[i], self.scores[i]])
+				i += 1
+			
 	def update(self):
 		self.screen.fill((0,0,0))
 		self.screen.blit(self.game_over_title.rendered_text, self.game_over_title.text_rect)
 		self.screen.blit(self.final_score.rendered_text, self.final_score.text_rect)
+		self.screen.blit(self.high_score_display.rendered_text, self.high_score_display.text_rect)
 		self.screen.blit(self.instructions.rendered_text, self.instructions.text_rect)
 		pygame.display.flip()
 
@@ -476,11 +509,7 @@ class Play_Timer(object):
 
 	def string_time(self):
 		current_minutes = str(int((self.current_time % 600000)/60000)).zfill(2)
-		raw_seconds = int((self.current_time % 600000)/1000)
-		x = 1
-		if raw_seconds >= 60*x:
-			raw_seconds = raw_seconds - 60*x
-			x += 1
+		raw_seconds = int((self.current_time % 600000)/1000) - 60*(int(current_minutes))
 		current_seconds = str(raw_seconds).zfill(2)
 		current_decimal = str(int((self.current_time % 1000)/10)).zfill(2)
 		return f"{current_minutes}:{current_seconds}:{current_decimal}"
@@ -580,10 +609,10 @@ class App(object):
 		elif seconds < 2:
 			self.screen.blit(self.level.background, self.level.ui_display.cd3.text_rect, area=self.level.ui_display.cd3.text_rect)
 			self.screen.blit(self.level.ui_display.cd3.rendered_text, self.level.ui_display.cd3.text_rect)
-		elif 2 <= seconds < 3:
+		elif seconds < 3:
 			self.screen.blit(self.level.background, self.level.ui_display.cd2.text_rect, area=self.level.ui_display.cd3.text_rect)
 			self.screen.blit(self.level.ui_display.cd2.rendered_text, self.level.ui_display.cd2.text_rect)
-		elif 3 <= seconds < 4:
+		elif seconds < 4:
 			self.screen.blit(self.level.background, self.level.ui_display.cd1.text_rect, area=self.level.ui_display.cd2.text_rect)
 			self.screen.blit(self.level.ui_display.cd1.rendered_text, self.level.ui_display.cd1.text_rect)
 		else:
@@ -635,7 +664,7 @@ class App(object):
 			Ball.count = 3
 			self.level.clear_level()
 			self.current_level += 1
-			if self.current_level > 3:
+			if self.current_level == 3:
 				self.current_level = 1
 			self.level.choose_level(self.current_level)
 			self.level.build_level()
