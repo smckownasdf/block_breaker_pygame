@@ -1,4 +1,4 @@
-import sys, pygame, csv
+import sys, pygame, csv, pygame_textinput  # pygame_textinput found here: https://github.com/Nearoo/pygame-text-input, 3rd party dependency
 from bblevels import levels as bblevels , bonus_time as bonus_time
 
 # Global Variables
@@ -356,6 +356,7 @@ class Results_Screen(object):
 		for score in self.scores:
 			if Display_Score.score > int(score):
 				self.scores.insert(i, Display_Score.score)
+				Input().capture()
 				self.names.insert(i, "You")
 				break
 			i += 1
@@ -538,6 +539,41 @@ class Play_Timer(object):
 		self.string_time()
 		self.build_display(self.change_color())
 		self.clock.tick()
+
+class Input(object):
+	def __init__(self):
+		self.default_text = "Enter Your Name!"
+		self.text_color = (255,255,255)
+		self.cursor_color = (255,30,30)
+		self.input = ""
+		self.background = self.create_background()
+		self.screen = pygame.display.get_surface()
+		self.text_input = pygame_textinput.TextInput(initial_string=self.default_text, text_color=self.text_color, cursor_color=self.cursor_color)
+		self.clock = pygame.time.Clock()
+		self.capturing_input = True
+
+	def create_background(self):
+		background = pygame.Surface(screen_size)
+		background = background.convert()
+		background.fill((0,0,0))
+		return background
+
+	def capture(self):
+		while self.capturing_input:
+			events = pygame.event.get()
+			self.screen.blit(self.background, (10,10))
+			for event in events:
+				if event.type == pygame.QUIT:
+					exit()
+				if event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN:
+					self.input = self.text_input.get_text()
+					self.capturing_input = False
+
+			self.text_input.update(events)
+			self.screen.blit(self.text_input.get_surface(), (10,10))
+
+			pygame.display.update()
+			self.clock.tick(30)
 
 class App(object):
 	pressed_left = False
