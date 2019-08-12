@@ -353,11 +353,12 @@ class Results_Screen(object):
 
 	def check_for_high_score(self):
 		i = 0
+		name_input = Input()
 		for score in self.scores:
 			if Display_Score.score > int(score):
 				self.scores.insert(i, Display_Score.score)
-				Input().capture()
-				self.names.insert(i, "You")
+				name_input.capture()
+				self.names.insert(i, name_input.return_name())
 				break
 			i += 1
 		self.write_scores_to_file()
@@ -545,7 +546,7 @@ class Input(object):
 		self.default_text = "Enter Your Name!"
 		self.text_color = (255,255,255)
 		self.cursor_color = (255,30,30)
-		self.input = ""
+		self.name = ""
 		self.background = self.create_background()
 		self.screen = pygame.display.get_surface()
 		self.text_input = pygame_textinput.TextInput(initial_string=self.default_text, text_color=self.text_color, cursor_color=self.cursor_color)
@@ -566,14 +567,18 @@ class Input(object):
 				if event.type == pygame.QUIT:
 					exit()
 				if event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN:
-					self.input = self.text_input.get_text()
+					self.name = self.text_input.get_text()
+					self.return_name()
 					self.capturing_input = False
 
 			self.text_input.update(events)
-			self.screen.blit(self.text_input.get_surface(), (10,10))
+			self.screen.blit(self.text_input.get_surface(), (800,400))
 
 			pygame.display.update()
 			self.clock.tick(30)
+
+	def return_name(self):
+		return self.name
 
 class App(object):
 	pressed_left = False
@@ -697,7 +702,6 @@ class App(object):
 
 	def next_level(self):
 		if self.current_level <= len(bblevels):	
-			Ball.count = 3
 			self.level.clear_level()
 			self.current_level += 1
 			if self.current_level == 3:
