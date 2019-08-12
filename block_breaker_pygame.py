@@ -323,16 +323,19 @@ class Start_Menu(object):
 		pygame.display.flip()
 
 class Results_Screen(object):
+	score_list = []
 	def __init__(self):
-		self.names = []
-		self.scores = []
+		self.get_high_scores()
+		self.score_list = [["0",0]]
+		self.high_name = ""
+		self.high_score = 0
 		self.game_over_title = Display_Text(128,"GAME OVER", (800, 300), color=(255,50,50))
 		self.final_score = Display_Text(64,"Final Score: "+str(Display_Score.score), (800, 430)) 
 		self.background = self.create_background()
 		self.screen = pygame.display.get_surface()
 		self.screen_rect = self.screen.get_rect()
-		self.high_score = self.get_high_scores()
-		self.high_score_display = Display_Text(48,"High Score: "+str(self.high_score)+" by "+self.names[0], (800,480), color=(200,200,30))
+		self.high_display = None
+		self.clock = pygame.time.Clock()
 		self.instructions = Display_Text(32,"Press Spacebar to Play Again", (800, 650), color=(30,255,50))
 
 	def create_background(self):
@@ -344,40 +347,35 @@ class Results_Screen(object):
 	def get_high_scores(self):
 		with open("highscore.csv", "r") as file:
 			csv_reader = csv.reader(file)
-			new_list = sorted(csv_reader, key=lambda row: row[1], reverse=True)[0:5]
-			for row in new_list:
-				self.scores.append(row[1])
-				self.names.append(row[0])
+			score_list = sorted(csv_reader, key=lambda row: int(row[1]), reverse=True)[0:5]
+			Results_Screen.score_list = score_list
 		self.check_for_high_score()
-		return int(self.scores[0])
 
 	def check_for_high_score(self):
 		i = 0
-		name_input = Input()
-		for score in self.scores:
-			if Display_Score.score > int(score):
-				self.scores.insert(i, Display_Score.score)
+		while i < len(self.score_list):
+			if Display_Score.score > int(self.score_list[i][1]):
+				name_input = Input()
 				name_input.capture()
-				self.names.insert(i, name_input.return_name())
-				break
+				Results_Screen.score_list.insert(i, [name_input.return_name(), Display_Score.score])
+				i = 100
 			i += 1
+		self.update_high_score()
 		self.write_scores_to_file()
+
+	def update_high_score(self):
+		high_name = Results_Screen.score_list[0][0]
+		high_score = Results_Screen.score_list[0][1]
+		self.high_display = Display_Text(48,"High Score: "+str(high_score)+" by "+high_name, (800,480), color=(200,200,30))
 
 	def write_scores_to_file(self):
 		with open("highscore.csv","w") as file:
 			csv_writer = csv.writer(file)
-			i = 0
-			for scores in self.scores:
-				csv_writer.writerow([self.names[i], self.scores[i]])
-				i += 1
-			
+			for score in self.score_list:
+				csv_writer.writerow(score)
+
 	def update(self):
-		self.screen.fill((0,0,0))
-		self.screen.blit(self.game_over_title.rendered_text, self.game_over_title.text_rect)
-		self.screen.blit(self.final_score.rendered_text, self.final_score.text_rect)
-		self.screen.blit(self.high_score_display.rendered_text, self.high_score_display.text_rect)
-		self.screen.blit(self.instructions.rendered_text, self.instructions.text_rect)
-		pygame.display.flip()
+		self.update_high_score()
 
 class UI_Display(object):
 	def __init__(self):
@@ -580,6 +578,11 @@ class Input(object):
 	def return_name(self):
 		return self.name
 
+
+"""
+Maybe change CSV to have a third "row" indicating recency / time of change
+"""
+
 class App(object):
 	pressed_left = False
 	pressed_right = False
@@ -686,6 +689,15 @@ class App(object):
 		else:
 			self.screen.blit(self.level.ui_display.auto_toggle_on.rendered_text, self.level.ui_display.auto_toggle_on.text_rect)
 
+	def results_screen_update(self):
+		self.results_screen.update()
+		self.screen.fill((0,0,0))
+		self.screen.blit(self.results_screen.game_over_title.rendered_text, self.results_screen.game_over_title.text_rect)
+		self.screen.blit(self.results_screen.final_score.rendered_text, self.results_screen.final_score.text_rect)
+		self.screen.blit(self.results_screen.instructions.rendered_text, self.results_screen.instructions.text_rect)
+		pygame.draw.rect(self.screen, (0,0,0), self.results_screen.high_display.text_rect)
+		self.screen.blit(self.results_screen.high_display.rendered_text, self.results_screen.high_display.text_rect)
+
 	def start_countdown(self):
 		self.start_ticks = pygame.time.get_ticks()
 		self.countdown = True
@@ -734,8 +746,9 @@ class App(object):
 				self.start_menu.update()
 				self.menu_loop()
 			elif self.finished:
-				self.results_screen.update()
+				self.results_screen_update()
 				self.menu_loop()
+				pygame.display.flip()
 			else:
 				if self.paused:
 					self.pause()
