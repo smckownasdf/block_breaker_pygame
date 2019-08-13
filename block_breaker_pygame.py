@@ -323,10 +323,9 @@ class Start_Menu(object):
 		pygame.display.flip()
 
 class Results_Screen(object):
-	score_list = []
+	score_list = [] # Apparently unable to call changed values in Display_Text when this was a self declaration. Don't know why.
 	def __init__(self):
 		self.get_high_scores()
-		self.score_list = [["0",0]]
 		self.high_name = ""
 		self.high_score = 0
 		self.game_over_title = Display_Text(128,"GAME OVER", (800, 300), color=(255,50,50))
@@ -335,8 +334,12 @@ class Results_Screen(object):
 		self.screen = pygame.display.get_surface()
 		self.screen_rect = self.screen.get_rect()
 		self.high_display = None
+		self.second_place = None
+		self.third_place = None
+		self.fourth_place = None
+		self.fifth_place = None
 		self.clock = pygame.time.Clock()
-		self.instructions = Display_Text(32,"Press Spacebar to Play Again", (800, 650), color=(30,255,50))
+		self.instructions = Display_Text(32,"Press Spacebar to Play Again", (800,690), color=(30,255,50))
 
 	def create_background(self):
 		background = pygame.Surface(screen_size)
@@ -360,13 +363,17 @@ class Results_Screen(object):
 				Results_Screen.score_list.insert(i, [name_input.return_name(), Display_Score.score])
 				i = 100
 			i += 1
-		self.update_high_score()
+		self.update_high_scores()
 		self.write_scores_to_file()
 
-	def update_high_score(self):
+	def update_high_scores(self):
 		high_name = Results_Screen.score_list[0][0]
 		high_score = Results_Screen.score_list[0][1]
-		self.high_display = Display_Text(48,"High Score: "+str(high_score)+" by "+high_name, (800,480), color=(200,200,30))
+		self.high_display = Display_Text(48,"High Score: "+str(high_score)+" by "+high_name, (800,460), color=(200,200,30))
+		self.second_place = Display_Text(28,"2nd: "+str(Results_Screen.score_list[1][1])+" by "+Results_Screen.score_list[1][0], (800,520))
+		self.third_place = Display_Text(28,"3rd: "+str(Results_Screen.score_list[2][1])+" by "+Results_Screen.score_list[2][0], (800,550))
+		self.fourth_place = Display_Text(28,"4th: "+str(Results_Screen.score_list[3][1])+" by "+Results_Screen.score_list[3][0], (800,580))
+		self.fifth_place = Display_Text(28,"5th: "+str(Results_Screen.score_list[4][1])+" by "+Results_Screen.score_list[4][0], (800,610))
 
 	def write_scores_to_file(self):
 		with open("highscore.csv","w") as file:
@@ -375,7 +382,21 @@ class Results_Screen(object):
 				csv_writer.writerow(score)
 
 	def update(self):
-		self.update_high_score()
+		self.update_high_scores()
+		self.screen.fill((0,0,0))
+		self.screen.blit(self.game_over_title.rendered_text, self.game_over_title.text_rect)
+		self.screen.blit(self.final_score.rendered_text, self.final_score.text_rect)
+		self.screen.blit(self.instructions.rendered_text, self.instructions.text_rect)
+		pygame.draw.rect(self.screen, (0,0,0), self.high_display.text_rect)
+		self.screen.blit(self.high_display.rendered_text, self.high_display.text_rect)
+		pygame.draw.rect(self.screen, (0,0,0), self.second_place.text_rect)
+		self.screen.blit(self.second_place.rendered_text, self.second_place.text_rect)
+		pygame.draw.rect(self.screen, (0,0,0), self.third_place.text_rect)
+		self.screen.blit(self.third_place.rendered_text, self.third_place.text_rect)
+		pygame.draw.rect(self.screen, (0,0,0), self.fourth_place.text_rect)
+		self.screen.blit(self.fourth_place.rendered_text, self.fourth_place.text_rect)
+		pygame.draw.rect(self.screen, (0,0,0), self.fifth_place.text_rect)
+		self.screen.blit(self.fifth_place.rendered_text, self.fifth_place.text_rect)
 
 class UI_Display(object):
 	def __init__(self):
@@ -689,15 +710,6 @@ class App(object):
 		else:
 			self.screen.blit(self.level.ui_display.auto_toggle_on.rendered_text, self.level.ui_display.auto_toggle_on.text_rect)
 
-	def results_screen_update(self):
-		self.results_screen.update()
-		self.screen.fill((0,0,0))
-		self.screen.blit(self.results_screen.game_over_title.rendered_text, self.results_screen.game_over_title.text_rect)
-		self.screen.blit(self.results_screen.final_score.rendered_text, self.results_screen.final_score.text_rect)
-		self.screen.blit(self.results_screen.instructions.rendered_text, self.results_screen.instructions.text_rect)
-		pygame.draw.rect(self.screen, (0,0,0), self.results_screen.high_display.text_rect)
-		self.screen.blit(self.results_screen.high_display.rendered_text, self.results_screen.high_display.text_rect)
-
 	def start_countdown(self):
 		self.start_ticks = pygame.time.get_ticks()
 		self.countdown = True
@@ -746,7 +758,7 @@ class App(object):
 				self.start_menu.update()
 				self.menu_loop()
 			elif self.finished:
-				self.results_screen_update()
+				self.results_screen.update()
 				self.menu_loop()
 				pygame.display.flip()
 			else:
