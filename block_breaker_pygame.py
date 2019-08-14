@@ -21,22 +21,27 @@ class Ball(pygame.sprite.Sprite):
 		self.spin = 0
 
 	def bouncex(self):
+		"""
+		Reverse direction on the x axis, for when the ball hits a vertical obstacle
+		"""
 		self.speed[0] = -self.speed[0]
 		self.speed[1] = self.speed[1]
 
 	def bouncey(self):
+		"""
+		Reverse direction on the y axis, for when the ball hits a horizontal obstacle
+		"""
 		self.speed[1] = -self.speed[1]
 		self.speed[0] = self.speed[0] + self.spin
 
 	def bounce(self, collider):
+		"""
+		Implement bouncex and bouncey methods to reverse direction appropriately
+		when the ball hits a surface
+		"""
+		self.screen_edges()
 		if self.rect.colliderect(collider):
-			if collider.__class__.__name__ == "Block":
-				collider.hit()
-			if collider.__class__.__name__ == "Paddle":
-				if App.pressed_left:
-					self.spin = 100
-				elif App.pressed_right:
-					self.spin = -100
+			self.collider_specific_actions(collider)
 			if self.speed[1] >= 0: # ball is moving down
 				if self.speed[0] >= 0: # ball is moving right
 					# Corner hit
@@ -89,11 +94,29 @@ class Ball(pygame.sprite.Sprite):
 						self.rect.left = collider.rect.right
 		self.spin = 0
 
+	def collider_specific_actions(self, collider):
+		"""
+		Implement methods and changes specific to the type of collider hit
+		"""
+		if collider.__class__.__name__ == "Block":
+			collider.hit()
+		if collider.__class__.__name__ == "Paddle":
+			if App.pressed_left:
+				self.spin = 100
+			elif App.pressed_right:
+				self.spin = -100
+
 	def update(self):
+		"""
+		Move the ball once per frame
+		"""
 		self.rect = self.rect.move(self.speed[0]*App.dt, self.speed[1]*App.dt)
-		self.screen_edges()
 
 	def screen_edges(self):
+		"""
+		Keep the ball bouncing against and contained within screen edges
+		If ball exits bottom of screen, start appropriate method tree
+		"""
 		if self.rect.left < 0:
 			self.bouncex()
 			self.rect.left = 0
@@ -106,6 +129,9 @@ class Ball(pygame.sprite.Sprite):
 		self.lost_ball(self.screen_rect)
 
 	def lost_ball(self, screen_rect):
+		"""
+		Activate triggers and reset ball to top of screen
+		"""
 		if self.rect.top > screen_rect.bottom + 300:
 			Ball.count -= 1
 			Ball.lost = True
