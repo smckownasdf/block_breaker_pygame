@@ -1,4 +1,5 @@
-import sys, pygame, csv, pygame_textinput  # pygame_textinput found here: https://github.com/Nearoo/pygame-text-input, 3rd party dependency
+import sys, pygame, csv, pygame_textinput  
+# pygame_textinput found here: https://github.com/Nearoo/pygame-text-input
 from bblevels import levels as bblevels , bonus_time as bonus_time
 
 # Global Variables
@@ -137,6 +138,7 @@ class Ball(pygame.sprite.Sprite):
 			Ball.lost = True
 			self.rect.top = screen_rect.top
 
+
 class Paddle(pygame.sprite.Sprite):
 	def __init__(self, posx, posy):
 		pygame.sprite.Sprite.__init__(self)
@@ -150,6 +152,10 @@ class Paddle(pygame.sprite.Sprite):
 		self.screen_rect = self.screen.get_rect()
 
 	def create_paddle(self):
+		"""
+		Create and return a paddle surface, then draw the paddle rect 
+		according to self.size and self.paddle_color parameters
+		"""
 		image = pygame.Surface(self.size).convert_alpha()
 		image.fill(transparent)
 		img_rect = image.get_rect()
@@ -157,18 +163,31 @@ class Paddle(pygame.sprite.Sprite):
 		return image
 
 	def contain_paddle(self): 
+		"""
+		Prevent the paddle from exiting the visible screen
+		"""
 		if self.rect.left <= 0:
 			App.pressed_left = False
 		elif self.rect.right >= self.screen_rect.right:
 			App.pressed_right = False
 
-	def update(self):
-		self.contain_paddle()
+	def move(self):
+		"""
+		Determine where the paddle is, then how and where it moves if applicable
+		"""
 		self.rect.center = self.true_pos
 		if App.pressed_left:
 			self.true_pos[0] -= self.move_speed
 		if App.pressed_right:
 			self.true_pos[0] += self.move_speed
+
+	def update(self):
+		"""
+		Move the paddle if applicable and make sure it stays in the play area each frame
+		"""
+		self.move()
+		self.contain_paddle()
+
 
 class Block(pygame.sprite.Sprite):
 	one_hit = 1
