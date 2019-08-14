@@ -201,11 +201,15 @@ class Block(pygame.sprite.Sprite):
 		self.hit_count = 0
 		self.hit_max = hitmax
 		self.size = self.determine_size()
-		self.block_color = self.determine_color()
+		self.color = self.determine_color()
 		self.image = self.create_block()
 		self.rect = self.image.get_rect(center=(posx, posy))
 
 	def determine_size(self):
+		"""
+		Check for optional xl and test parameters 
+		to set the dimensions of block when a block is initialized
+		"""
 		if self.xl:
 			size = (126, 62)
 		elif self.test:
@@ -215,27 +219,45 @@ class Block(pygame.sprite.Sprite):
 		return size
 
 	def determine_color(self):
+		"""
+		Check hit_max parameter to set the color of block
+		when block is initialized
+		"""
 		if self.hit_max == 1:
-			block_color = pygame.Color(220,114,42,a=200)
+			color = pygame.Color(220,114,42,a=200)
 		elif self.hit_max == 2:
-			block_color = pygame.Color(0,0,220,a=200)
+			color = pygame.Color(0,0,220,a=200)
 		elif self.hit_max == 3:
-			block_color = pygame.Color(42,220,114,a=200)
-		return block_color
+			color = pygame.Color(42,220,114,a=200)
+		return color
 
 	def create_block(self):
+		"""
+		Create and return a block surface, then draw the block rect 
+		according to self.size and self.color parameters		
+		"""
 		image = pygame.Surface(self.size).convert_alpha()
 		image.fill(transparent)
 		img_rect = image.get_rect()
-		pygame.draw.rect(image, self.block_color, img_rect)
+		pygame.draw.rect(image, self.color, img_rect)
 		return image
 
 	def hit(self):
+		"""
+		To be invoked when a Ball object hits a particular Block object
+		Increment the number of times this block has been hit
+		Add to the existing score, then call Block.destroy
+		"""
 		self.hit_count += 1
 		Display_Score.score += 150
 		self.destroy()
 
 	def destroy(self):
+		"""
+		Check whether block has been hit enough to be destroyed
+		Destroy the block if appropriate, and if block has been destroyed
+		Add to score and subtract from remaining block count
+		"""
 		if self.hit_count == self.hit_max:
 			self.kill()
 			Display_Score.score += 500
