@@ -325,19 +325,21 @@ class Start_Menu(object):
 class Results_Screen(object):
 	score_list = [] # Apparently unable to call changed values in Display_Text when this was a self declaration. Don't know why.
 	def __init__(self):
-		self.get_high_scores()
-		self.high_name = ""
-		self.high_score = 0
 		self.game_over_title = Display_Text(128,"GAME OVER", (800, 300), color=(255,50,50))
-		self.final_score = Display_Text(64,"Final Score: "+str(Display_Score.score), (800, 430)) 
+		self.final_score = Display_Text(64,"Final Score: "+str(Display_Score.score), (800, 400)) 
 		self.background = self.create_background()
 		self.screen = pygame.display.get_surface()
 		self.screen_rect = self.screen.get_rect()
+		self.white = (255,255,255)
+		self.green = (20,255,50)
 		self.high_display = None
 		self.second_place = None
 		self.third_place = None
 		self.fourth_place = None
 		self.fifth_place = None
+		self.new_index = None
+		self.high_score_colors = [(200,200,30), self.white, self.white, self.white, self.white]
+		self.get_high_scores()
 		self.clock = pygame.time.Clock()
 		self.instructions = Display_Text(32,"Press Spacebar to Play Again", (800,690), color=(30,255,50))
 
@@ -361,27 +363,50 @@ class Results_Screen(object):
 				name_input = Input()
 				name_input.capture()
 				Results_Screen.score_list.insert(i, [name_input.return_name(), Display_Score.score])
+				self.new_index = i
 				i = 100
 			i += 1
 		self.update_high_scores()
 		self.write_scores_to_file()
 
+	def determine_colors(self):
+		"""
+		Determine which colors high scores should display as, 
+		based on whether it was added this round
+		"""
+		if self.new_index != None:
+			i = 0
+			while i < len(self.high_score_colors):
+				if i == self.new_index:
+					self.high_score_colors[i] = self.green
+				i += 1
+			print(self.new_index)
+
 	def update_high_scores(self):
-		high_name = Results_Screen.score_list[0][0]
-		high_score = Results_Screen.score_list[0][1]
-		self.high_display = Display_Text(48,"High Score: "+str(high_score)+" by "+high_name, (800,460), color=(200,200,30))
-		self.second_place = Display_Text(28,"2nd: "+str(Results_Screen.score_list[1][1])+" by "+Results_Screen.score_list[1][0], (800,520))
-		self.third_place = Display_Text(28,"3rd: "+str(Results_Screen.score_list[2][1])+" by "+Results_Screen.score_list[2][0], (800,550))
-		self.fourth_place = Display_Text(28,"4th: "+str(Results_Screen.score_list[3][1])+" by "+Results_Screen.score_list[3][0], (800,580))
-		self.fifth_place = Display_Text(28,"5th: "+str(Results_Screen.score_list[4][1])+" by "+Results_Screen.score_list[4][0], (800,610))
+		"""
+		Determine whether colors should be default or changed, 
+		then update Display_Text parameters for high scores as displayed on the screen
+		"""
+		self.determine_colors()
+		self.high_display = Display_Text(48,"High Score: "+str(Results_Screen.score_list[0][1])+" by "+Results_Screen.score_list[0][0], (800,460), color=self.high_score_colors[0])
+		self.second_place = Display_Text(28,"2nd: "+str(Results_Screen.score_list[1][1])+" by "+Results_Screen.score_list[1][0], (800,520), color=self.high_score_colors[1])
+		self.third_place = Display_Text(28,"3rd: "+str(Results_Screen.score_list[2][1])+" by "+Results_Screen.score_list[2][0], (800,550), color=self.high_score_colors[2])
+		self.fourth_place = Display_Text(28,"4th: "+str(Results_Screen.score_list[3][1])+" by "+Results_Screen.score_list[3][0], (800,580), color=self.high_score_colors[3])
+		self.fifth_place = Display_Text(28,"5th: "+str(Results_Screen.score_list[4][1])+" by "+Results_Screen.score_list[4][0], (800,610), color=self.high_score_colors[4])
 
 	def write_scores_to_file(self):
-		with open("highscore.csv","w") as file:
-			csv_writer = csv.writer(file)
-			for score in self.score_list:
-				csv_writer.writerow(score)
+		try:
+			with open("highscore.csv","w") as file:
+				csv_writer = csv.writer(file)
+				for score in self.score_list:
+					csv_writer.writerow(score)
+		except:
+			print("Could not write scores to file")
 
 	def update(self):
+		"""
+		Boot frame updates and then draw each element on the screen
+		"""
 		self.update_high_scores()
 		self.screen.fill((0,0,0))
 		self.screen.blit(self.game_over_title.rendered_text, self.game_over_title.text_rect)
