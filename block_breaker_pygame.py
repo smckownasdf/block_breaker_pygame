@@ -1,5 +1,33 @@
+"""
+-------------
+Requirements:
+-------------
+
+- pygame
+- pygame_textinput (found here: https://github.com/Nearoo/pygame-text-input)
+- csv
+- bblevels.py (should have been downloaded with this file, from http://github.com/smckownasdf)
+
+A file called highscore.csv, which acts as a save file for the top 5 high score results,
+will be created automatically if it does not already exist.
+
+--------------------
+Why did I make this?
+--------------------
+
+This project was built as a means of continuing my education in Python3 using OOP.
+As such, if you spot any errors or things that could be written better,
+I would love to hear and see your corrections / suggestions.
+
+Feel free to modify bblevels.py to add more levels or create your own,
+or to modify and take from this code as you see fit.
+
+Thank you for taking the time to look at this, 
+and if you're learning too, I hope something here helps with that process.
+
+"""
+
 import sys, pygame, csv, pygame_textinput  
-# pygame_textinput found here: https://github.com/Nearoo/pygame-text-input
 from bblevels import levels as bblevels , bonus_time as bonus_time
 
 # Global Variables
@@ -212,8 +240,6 @@ class Block(pygame.sprite.Sprite):
 		"""
 		if self.xl:
 			size = (126, 62)
-		elif self.test:
-			size = (1280, 30)
 		else:
 			size = (62, 30)
 		return size
@@ -276,34 +302,43 @@ class Level(object):
 		self.blocks = pygame.sprite.Group()
 		self.all_sprites = pygame.sprite.Group()
 		self.ui_display = UI_Display()
-		self.ball_count = Ball.count
-		self.ui_display.display_ball_count()
+		self.ui_display.build_ball_count_display()
 		self.all_sprites.add(self.ui_display.all_sprites)
 		self.display_score = Display_Score()
 
 	def collision_check(self):
+		"""
+		Create a list of all sprites the ball is colliding with in a given frame,
+		and make the ball bounce off each of them
+		"""
 		collisions = pygame.sprite.spritecollide(self.ball, self.all_sprites, False)
 		for objects in collisions:
 			self.ball.bounce(objects)
 
 	def create_background(self):
+		"""
+		Return a simple Surface object that fills the screen with black for use as a background
+		"""
 		background = pygame.Surface(screen_size)
 		background = background.convert()
 		background.fill((0,0,0))
 		return background
 
 	def choose_level(self, level=1):
-		if level == 1:
-			Level.name = "level1"
-		if level == 2:
-			Level.name = "level2"
-		if level == 3:
-			Level.name = "level3"
-		if level > 3:
+		"""
+		Connect numeric "level" input variable to corresponding bblevels dictionary entry
+		and load that definition for use in level_layout
+		"""
+		if level <= len(bblevels):
+			Level.name = "level"+str(level)
+			self.level_layout = bblevels.get(Level.name)
+		if level > len(bblevels):
 			raise NotImplementedError
-		self.level_layout = bblevels.get(Level.name)
 
 	def build_level(self):
+		"""
+		Using level_layout variable as a template, draw the level map line by line
+		"""
 		x = 0
 		y = 0
 		for row in self.level_layout:
@@ -329,8 +364,8 @@ class Level(object):
 					ball = Ball(x,y)
 					self.ball = ball
 					self.all_sprites.add(self.ball)
-				elif col == "T":
-					block = Block(x,y, Block.one_hit, xl=False, test=True)
+				elif col == "X":
+					block = Block(x,y, Block.three_hit, xl=True)
 					self.blocks.add(block)
 					self.all_sprites.add(block)
 				elif col == " ":
@@ -345,23 +380,38 @@ class Level(object):
 		Block.count = len(self.blocks)
 
 	def clear_level(self):
+		"""
+		Empty variables before loading the next level
+		"""
 		self.level_layout = None
 		self.ball = None
 		self.blocks.empty()
 		self.all_sprites.empty()
-		self.ball_count = Ball.count
-		self.ui_display.display_ball_count()
-		self.add_bonus()
+
+	def prepare_ui(self):
+		"""
+		Prepare UI elements that reset between level loads,
+		and add them to the list of Level sprites
+		"""
+		self.ui_display.build_ball_count_display()
 		self.ui_display.play_timer.restart_timer()
 		self.all_sprites.add(self.ui_display.all_sprites)
 
 	def add_bonus(self):
+		"""
+		Calculate whether time and ball bonuses apply, then add them to score
+		"""
+		balls_left = Ball.count
 		time = bonus_time.get(Level.name)
 		if self.ui_display.play_timer.current_time < time:
 			bonus = int((time - self.ui_display.play_timer.current_time)/300)
 			Display_Score.score += bonus
+		Display_Score.score += 7500 * balls_left
 
 	def update(self):
+		"""
+		Perform necessary updates to properly display each frame while in play levels
+		"""
 		Level.current_time = self.ui_display.play_timer.current_time
 		self.ui_display.update()
 		self.collision_check()
@@ -377,12 +427,18 @@ class Start_Menu(object):
 		self.screen_rect = self.screen.get_rect()
 
 	def create_background(self):
+		"""
+		Return a simple Surface object that fills the screen with black for use as a background
+		"""
 		background = pygame.Surface(screen_size)
 		background = background.convert()
 		background.fill((0,0,0))
 		return background
 
 	def update(self):
+		"""
+		Perform necessary updates to properly display each frame while in the start menu loop
+		"""
 		self.screen.fill((0,0,0))
 		self.screen.blit(self.title.rendered_text, self.title.text_rect)
 		self.screen.blit(self.subtitle.rendered_text, self.subtitle.text_rect)
@@ -397,6 +453,7 @@ class Results_Screen(object):
 		self.background = self.create_background()
 		self.screen = pygame.display.get_surface()
 		self.screen_rect = self.screen.get_rect()
+		self.default_list = [["The Dude",50000],["Walter",40000],["Theodore",30000],["Bunny",20000],["Nihilist #2",10000]]
 		self.white = (255,255,255)
 		self.green = (20,255,50)
 		self.high_display = None
@@ -417,29 +474,35 @@ class Results_Screen(object):
 		return background
 
 	def get_high_scores(self):
-		with open("highscore.csv", "r") as file:
-			csv_reader = csv.reader(file)
-			score_list = sorted(csv_reader, key=lambda row: int(row[1]), reverse=True)[0:5]
-			Results_Screen.score_list = score_list
+		try:
+			with open("highscore.csv", "r") as file:
+				csv_reader = csv.reader(file)
+				score_list = sorted(csv_reader, key=lambda row: int(row[1]), reverse=True)[0:5]
+				Results_Screen.score_list = score_list
+		except:
+			print("Failed to open and read highscore.csv")
+			Results_Screen.score_list = self.default_list
 		self.check_for_high_score()
+
 
 	def check_for_high_score(self):
 		i = 0
-		while i < len(self.score_list):
-			if Display_Score.score > int(self.score_list[i][1]):
-				name_input = Input()
-				name_input.capture()
-				Results_Screen.score_list.insert(i, [name_input.return_name(), Display_Score.score])
-				self.new_index = i
-				i = 100
-			i += 1
+		if Results_Screen.score_list != self.default_list:
+			while i < len(self.score_list):
+				if Display_Score.score > int(self.score_list[i][1]):
+					name_input = Input()
+					name_input.capture()
+					Results_Screen.score_list.insert(i, [name_input.return_name(), Display_Score.score])
+					self.new_index = i
+					i = 100
+				i += 1
 		self.update_high_scores()
 		self.write_scores_to_file()
 
 	def determine_colors(self):
 		"""
-		Determine which colors high scores should display as, 
-		based on whether it was added this round
+		Determine whether any of the high scores came from the last played round, 
+		match it to the index in high_score_colors, and highlight display in green
 		"""
 		if self.new_index != None:
 			i = 0
@@ -447,7 +510,6 @@ class Results_Screen(object):
 				if i == self.new_index:
 					self.high_score_colors[i] = self.green
 				i += 1
-			print(self.new_index)
 
 	def update_high_scores(self):
 		"""
@@ -462,6 +524,9 @@ class Results_Screen(object):
 		self.fifth_place = Display_Text(28,"5th: "+str(Results_Screen.score_list[4][1])+" by "+Results_Screen.score_list[4][0], (800,610), color=self.high_score_colors[4])
 
 	def write_scores_to_file(self):
+		"""
+		Write scores to file to preserve high scores
+		"""
 		try:
 			with open("highscore.csv","w") as file:
 				csv_writer = csv.writer(file)
@@ -493,7 +558,6 @@ class Results_Screen(object):
 class UI_Display(object):
 	def __init__(self):
 		self.all_sprites = pygame.sprite.Group()
-		self.ball_count = Ball.count
 		self.ball1 = Display_Ball(20,20)
 		self.ball2 = Display_Ball(45,20)
 		self.ball3 = Display_Ball(70,20)
@@ -511,57 +575,82 @@ class UI_Display(object):
 		self.score_text = self.display_score.str_value
 		self.score = Display_Text(32, self.score_text, (1550, 50), True)
 
-	def display_ball_count(self):
-		self.all_sprites.add(self.ball1)
-		self.all_sprites.add(self.ball2)
-		self.all_sprites.add(self.ball3)
-
-	def update(self):
-		self.ball_count = Ball.count
-		if self.ball_count == 2:
-			self.ball3.kill()
-		if self.ball_count == 1:
-			self.ball2.kill()
-		if self.ball_count == 0:
-			self.ball1.kill()
-		self.display_score.update()
-		self.play_timer.update()
-		self.update_display_score()
-		self.update_blocks_remaining()
-
-	def update_blocks_remaining(self):
-		self.blocks_left = Display_Text(32, "Blocks Remaining: " + str(Block.count), (800, 600))
-
-	def update_display_score(self):	
-		self.score_text = self.display_score.str_value
-		self.score = Display_Text(32, self.score_text, (1550, 50),is_right=True)
-
-	def build_display(self):
-		self.display_ball_count()
-
 	def build_pause_overlay(self):
 		pause_overlay = pygame.Surface(screen_size)
 		pause_overlay.set_alpha(128)
 		pause_overlay.fill((255,200,200))
 		return pause_overlay
 
+	def build_ball_count_display(self):
+		"""
+		Add ball images to spritegroup so that they will update with all UI Display sprites
+		"""
+		self.all_sprites.add(self.ball1)
+		self.all_sprites.add(self.ball2)
+		self.all_sprites.add(self.ball3)
+
+	def kill_ball_count_display(self):
+		"""
+		Remove ball_count images to match Ball.count
+		"""
+		if Ball.count == 2:
+			self.ball3.kill()
+		if Ball.count == 1:
+			self.ball2.kill()
+		if Ball.count == 0:
+			self.ball1.kill()
+
+	def update_blocks_remaining(self):
+		"""
+		Keep an accurate count of remaining blocks to display in the pause screen
+		"""
+		self.blocks_left = Display_Text(32, "Blocks Remaining: " + str(Block.count), (800, 600))
+
+	def update_display_score(self):	
+		"""
+		Capture score and update the display
+		To be called each frame
+		"""
+		self.score_text = self.display_score.str_value
+		self.score = Display_Text(32, self.score_text, (1550, 50),is_right=True)
+
+	def update(self):
+		"""
+		Perform necessary updates to properly display each frame while in the start menu loop
+		"""
+		self.kill_ball_count_display()
+		self.display_score.update()
+		self.play_timer.update()
+		self.update_display_score()
+		self.update_blocks_remaining()
+
 class Display_Text(object):
 	def __init__(self, size, text, center_tuple, is_right=False, color=(255,255,255)):
 		self.font_size = size
 		self.text = text
 		self.tuple = center_tuple
-		# center tuple becomes mid-right of text object when bool is_right == True
 		self.is_right = is_right
 		self.color = color
 		self.font = self.create_font()
-		self.rendered_text = self.render_font()
+		self.rendered_text = self.render_text()
 		self.text_rect = self.create_text_rect()
 
 	def create_font(self):
-		font = pygame.font.Font('XeroxSerifWideBold.ttf',self.font_size)
+		"""
+		Create a pygame font object. If intended font object is available, use it
+		Otherwise, load an extremely common system font
+		"""
+		try:
+			font = pygame.font.Font('XeroxSerifWideBold.ttf',self.font_size)
+		except:
+			font = pygame.font.SysFont('Helvetica',self.font_size)
 		return font
 
 	def create_text_rect(self):
+		"""
+		If is_right evaluates as True, assign center_tuple as midright tuple
+		Return appropriate text_rect accordingly
+		"""
 		if self.is_right:
 			text_rect = self.rendered_text.get_rect(midright=self.tuple)
 			return text_rect
@@ -569,7 +658,10 @@ class Display_Text(object):
 			text_rect = self.rendered_text.get_rect(center=self.tuple)
 			return text_rect
 
-	def render_font(self):
+	def render_text(self):
+		"""
+		Return 
+		"""
 		rendered_text = self.font.render(self.text, True, self.color)
 		return rendered_text
 
@@ -691,11 +783,6 @@ class Input(object):
 	def return_name(self):
 		return self.name
 
-
-"""
-Maybe change CSV to have a third "row" indicating recency / time of change
-"""
-
 class App(object):
 	pressed_left = False
 	pressed_right = False
@@ -779,7 +866,7 @@ class App(object):
 		self.level = Level()
 		self.level.choose_level(self.current_level)
 		self.level.build_level()
-		self.level.ui_display.build_display()
+		self.level.ui_display.build_ball_count_display()
 		self.start_countdown()
 
 	def reset_game(self):
@@ -819,8 +906,10 @@ class App(object):
 	def next_level(self):
 		if self.current_level <= len(bblevels):	
 			self.level.clear_level()
+			self.level.add_bonus()
+			self.level.prepare_ui()
 			self.current_level += 1
-			if self.current_level == 3:
+			if self.current_level > len(bblevels):
 				self.current_level = 1
 			self.level.choose_level(self.current_level)
 			self.level.build_level()
