@@ -36,6 +36,15 @@ transparent = (0, 0, 0, 0)
 pixelx = 64
 pixely = 32
 
+def create_background():
+	"""
+	Return a simple Surface object that fills the screen with black for use as a background
+	"""
+	background = pygame.Surface(screen_size)
+	background = background.convert()
+	background.fill((0,0,0))
+	return background
+
 class Ball(pygame.sprite.Sprite):
 	count = 3
 	lost = False
@@ -295,7 +304,7 @@ class Level(object):
 	def __init__(self):
 		self.halfcol = pixelx/2
 		self.level_layout = None
-		self.background = self.create_background()
+		self.background = create_background()
 		self.ball = None
 		self.paddle = None
 		self.paddles = pygame.sprite.Group()
@@ -314,15 +323,6 @@ class Level(object):
 		collisions = pygame.sprite.spritecollide(self.ball, self.all_sprites, False)
 		for objects in collisions:
 			self.ball.bounce(objects)
-
-	def create_background(self):
-		"""
-		Return a simple Surface object that fills the screen with black for use as a background
-		"""
-		background = pygame.Surface(screen_size)
-		background = background.convert()
-		background.fill((0,0,0))
-		return background
 
 	def choose_level(self, level=1):
 		"""
@@ -422,18 +422,9 @@ class Start_Menu(object):
 		self.title = Display_Text(128,"BLOCK BREAKER", (800, 300), color=(255,50,50))
 		self.subtitle = Display_Text(48,"A Clone by Scott McKown, Built Using PyGame", (800, 400), color=(255,80,80))
 		self.instructions = Display_Text(32,"Press Spacebar to Begin", (800, 650), color=(30,255,50))
-		self.background = self.create_background()
+		self.background = create_background()
 		self.screen = pygame.display.get_surface()
 		self.screen_rect = self.screen.get_rect()
-
-	def create_background(self):
-		"""
-		Return a simple Surface object that fills the screen with black for use as a background
-		"""
-		background = pygame.Surface(screen_size)
-		background = background.convert()
-		background.fill((0,0,0))
-		return background
 
 	def update(self):
 		"""
@@ -450,7 +441,7 @@ class Results_Screen(object):
 	def __init__(self):
 		self.game_over_title = Display_Text(128,"GAME OVER", (800, 300), color=(255,50,50))
 		self.final_score = Display_Text(64,"Final Score: "+str(Display_Score.score), (800, 400)) 
-		self.background = self.create_background()
+		self.background = create_background()
 		self.screen = pygame.display.get_surface()
 		self.screen_rect = self.screen.get_rect()
 		self.default_list = [["The Dude",50000],["Walter",40000],["Theodore",30000],["Bunny",20000],["Nihilist #2",10000]]
@@ -467,37 +458,44 @@ class Results_Screen(object):
 		self.clock = pygame.time.Clock()
 		self.instructions = Display_Text(32,"Press Spacebar to Play Again", (800,690), color=(30,255,50))
 
-	def create_background(self):
-		background = pygame.Surface(screen_size)
-		background = background.convert()
-		background.fill((0,0,0))
-		return background
-
 	def get_high_scores(self):
+		"""
+		Attempt to read high scores from file. If failed, use the default high score list,
+		then continue by checking whether the current score qualifies as a high score
+		"""
 		try:
 			with open("highscore.csv", "r") as file:
 				csv_reader = csv.reader(file)
 				score_list = sorted(csv_reader, key=lambda row: int(row[1]), reverse=True)[0:5]
 				Results_Screen.score_list = score_list
 		except:
-			print("Failed to open and read highscore.csv")
+			print("Failed to open and read highscore.csv (possibly because it hasn't been created yet)")
 			Results_Screen.score_list = self.default_list
 		self.check_for_high_score()
 
-
 	def check_for_high_score(self):
+		"""
+		Check whether current score qualifies as a high score according to the score_list then continue
+		"""
 		i = 0
-		if Results_Screen.score_list != self.default_list:
-			while i < len(self.score_list):
-				if Display_Score.score > int(self.score_list[i][1]):
-					name_input = Input()
-					name_input.capture()
-					Results_Screen.score_list.insert(i, [name_input.return_name(), Display_Score.score])
-					self.new_index = i
-					i = 100
-				i += 1
+		while i < len(self.score_list):
+			if Display_Score.score > int(self.score_list[i][1]):
+				self.capture_input(i)
+				i = 100
+			i += 1
 		self.update_high_scores()
 		self.write_scores_to_file()
+
+	def capture_input(self, index):
+		"""
+		Invoke an instance of Input() to record a name for the high score,
+		insert name and high score into appropriate position in the score_list,
+		and save the index of that position as new_index 
+		"""
+		name_input = Input()
+		name_input.capture()
+		Results_Screen.score_list.insert(index, [name_input.return_name(), Display_Score.score])
+		self.new_index = index
 
 	def determine_colors(self):
 		"""
@@ -576,6 +574,10 @@ class UI_Display(object):
 		self.score = Display_Text(32, self.score_text, (1550, 50), True)
 
 	def build_pause_overlay(self):
+		"""
+		Create a semi-transparent layer to blit over the game screen 
+		as a visual indicator that the game is "frozen"
+		"""
 		pause_overlay = pygame.Surface(screen_size)
 		pause_overlay.set_alpha(128)
 		pause_overlay.fill((255,200,200))
@@ -674,6 +676,9 @@ class Display_Score(object):
 		self.str_value = self.num_value_to_text()
 
 	def num_value_to_text(self):
+		"""
+		Return a string variable displaying the integer score with preceding 0's
+		"""
 		self.zeroes = ""
 		while (len(self.zeroes) + len(str(self.num_value)) < 7):
 			self.zeroes += self.zero_str
@@ -681,6 +686,9 @@ class Display_Score(object):
 		return self.str_value
 
 	def update(self):
+		"""
+		Make sure score and str_value are current
+		"""
 		self.num_value = Display_Score.score
 		self.num_value_to_text()
 
@@ -705,14 +713,23 @@ class Play_Timer(object):
 		self.current_time = self.clock.get_time()
 
 	def restart_timer(self):
+		"""
+		'Zero' out timer values
+		"""
 		self.start_ticks = self.clock.get_time()
 		self.current_ticks = self.clock.get_time()
 
 	def update_time(self):
+		"""
+		Check current time and update related variables
+		"""
 		self.current_ticks += self.clock.get_time()
 		self.current_time = self.current_ticks - self.start_ticks
 
 	def string_time(self):
+		"""
+		Convert ticks to minutes, seconds and milliseconds and return a str displaying those values
+		"""
 		current_minutes = str(int((self.current_time % 600000)/60000)).zfill(2)
 		raw_seconds = int((self.current_time % 600000)/1000) - 60*(int(current_minutes))
 		current_seconds = str(raw_seconds).zfill(2)
@@ -720,15 +737,26 @@ class Play_Timer(object):
 		return f"{current_minutes}:{current_seconds}:{current_decimal}"
 
 	def pause(self):
+		"""
+		Maintain the presently displayed value on the timer indefinitely
+		by incrementing the value of start_ticks as ticks occur on the clock
+		"""
 		self.start_ticks += self.clock.get_time()
 
 	def build_display(self, color):
+		"""
+		Create a positioned timer display and asign to self.rect and self.rendered_time vars
+		"""
 		text = self.string_time()
 		display_time = Display_Text(self.font_size, text, (1550,100), is_right=True, color=color)
 		self.rect = display_time.text_rect
 		self.rendered_time = display_time.rendered_text
 
 	def change_color(self):
+		"""
+		As bonus_time values are approached and passed, change color of timer display
+		to yellow (warning) and red (no time bonus) respectively
+		"""
 		timer_goal = bonus_time.get(Level.name)
 		if((self.current_time + 30000) < timer_goal):
 			color = self.white
@@ -750,19 +778,16 @@ class Input(object):
 		self.text_color = (255,255,255)
 		self.cursor_color = (255,30,30)
 		self.name = ""
-		self.background = self.create_background()
+		self.background = create_background()
 		self.screen = pygame.display.get_surface()
 		self.text_input = pygame_textinput.TextInput(initial_string=self.default_text, text_color=self.text_color, cursor_color=self.cursor_color)
 		self.clock = pygame.time.Clock()
 		self.capturing_input = True
 
-	def create_background(self):
-		background = pygame.Surface(screen_size)
-		background = background.convert()
-		background.fill((0,0,0))
-		return background
-
 	def capture(self):
+		"""
+		Record key events in text_input and process accordingly
+		"""
 		while self.capturing_input:
 			events = pygame.event.get()
 			self.screen.blit(self.background, (10,10))
@@ -870,7 +895,7 @@ class App(object):
 		self.start_countdown()
 
 	def reset_game(self):
-		self.level = 1
+		self.current_level = 1
 		Display_Score.score = 0
 		Ball.lost = False
 

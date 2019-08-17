@@ -54,6 +54,9 @@ and 26 lines high.
 Only one ball and one paddle are allowed currently.
 Their position within layout does not actually matter.
 
+Be sure to add corresponding entries to "bonus_time" within bblevels.py. 
+Integer values refer to milliseconds.
+
 .
 ----------
 
