@@ -127,5 +127,8 @@ Finally, the template:
 		"                          ",
 	],
 
+Thank you for your time and interest!
+
+Scott McKown
 
 """
