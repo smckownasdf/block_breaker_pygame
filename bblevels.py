@@ -1,7 +1,5 @@
-
-
-
 levels = {
+# Copy everything between here:
 	"level1":
 	[
 		"                          ",
@@ -31,6 +29,7 @@ levels = {
 		"          P               ",
 		"                          ",
 	],
+# and here ^
 	"level2":
 	[
 		"                          ",
@@ -88,9 +87,9 @@ levels = {
 		"                          ",
 		"          P               ",
 		"                          ",
-	]
+	],
+# and paste right here to add another level
 }
-
 
 # time_bonus key:value
 # value is time needed to receive any bonus, in milliseconds 

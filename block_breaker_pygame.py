@@ -17,7 +17,7 @@ Why did I make this?
 
 This project was built as a means of continuing my education in Python3 using OOP.
 As such, if you spot any errors or things that could be written better,
-I would love to hear and see your corrections / suggestions.
+I would love to hear and see your corrections / suggestions!
 
 Feel free to modify bblevels.py to add more levels or create your own,
 or to modify and take from this code as you see fit.
@@ -468,6 +468,7 @@ class Results_Screen(object):
 				csv_reader = csv.reader(file)
 				score_list = sorted(csv_reader, key=lambda row: int(row[1]), reverse=True)[0:5]
 				Results_Screen.score_list = score_list
+				file.close()
 		except:
 			print("Failed to open and read highscore.csv (possibly because it hasn't been created yet)")
 			Results_Screen.score_list = self.default_list
@@ -530,6 +531,7 @@ class Results_Screen(object):
 				csv_writer = csv.writer(file)
 				for score in self.score_list:
 					csv_writer.writerow(score)
+				file.close()
 		except:
 			print("Could not write scores to file")
 
@@ -866,7 +868,6 @@ class App(object):
 			if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
 				self.started = True
 				self.finished = False
-				self.reset_game()
 				self.start_game()
 
 	def countdown_counter(self):
@@ -888,6 +889,7 @@ class App(object):
 			self.countdown = False
 
 	def start_game(self):
+		self.reset_game()
 		self.level = Level()
 		self.level.choose_level(self.current_level)
 		self.level.build_level()
@@ -897,6 +899,7 @@ class App(object):
 	def reset_game(self):
 		self.current_level = 1
 		Display_Score.score = 0
+		Ball.count = 3
 		Ball.lost = False
 
 	def auto_paddle(self):
