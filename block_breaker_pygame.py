@@ -2,28 +2,24 @@
 -------------
 Requirements:
 -------------
-
-- pygame
+Libraries:
+- Python3 (and the included CSV module)
+- pygame (python3 -m pip install -U pygame --user)
 - pygame_textinput (found here: https://github.com/Nearoo/pygame-text-input)
-- csv
+
+File Assets:
+- an image of a ball, titled ball.png
 - bblevels.py (should have been downloaded with this file, from http://github.com/smckownasdf)
+
+On File Locations: bblevels.py, ball.png, and pygame_textinput should be placed in the same folder 
+in which you store and run block_breaker_pygame.py
 
 A file called highscore.csv, which acts as a save file for the top 5 high score results,
 will be created automatically if it does not already exist.
 
---------------------
-Why did I make this?
---------------------
+For more information, please refer to the README file. Thank you!
 
-This project was built as a means of continuing my education in Python3 using OOP.
-As such, if you spot any errors or things that could be written better,
-I would love to hear and see your corrections / suggestions!
-
-Feel free to modify bblevels.py to add more levels or create your own,
-or to modify and take from this code as you see fit.
-
-Thank you for taking the time to look at this, 
-and if you're learning too, I hope something here helps with that process.
+- Scott McKown
 
 """
 

@@ -2,19 +2,23 @@
 -------------
 Requirements:
 -------------
-
-- Python3 (Currently only tested with Python 3.6.8)
-- pygame
-- csv
+Libraries:
+- Python3 (Currently only tested with Python 3.6.8) and the included CSV module
+- pygame (python3 -m pip install -U pygame --user)
 - pygame_textinput (found here: https://github.com/Nearoo/pygame-text-input)
-- bblevels.py (should have been downloaded with this file, from https://github.com/smckownasdf/block_breaker_pygame)
 
-bblevels.py and pygame_textinput should be placed in the same folder 
+File Assets:
+- bblevels.py (should have been downloaded with this file, 
+from https://github.com/smckownasdf/block_breaker_pygame)
+- ball.png (can be any png image with that title, preferably one depicting a ball on a black background)
+-------------
+Regarding File Locations: 
+bblevels.py, ball.png, and pygame_textinput.py should be placed in the same folder 
 in which you store and run block_breaker_pygame.py
 
 A file called highscore.csv, which acts as a save file for the top 5 high score results,
 will be created automatically if it does not already exist.
-.
+											.
 --------------------
 Why did I make this?
 --------------------
@@ -38,8 +42,7 @@ simple terms below), or to modify and take from this code as you see fit.
 
 Thank you for taking the time to look at this, and if you're learning too, I hope 
 that something here helps with that process. 
-
-.
+										.
 ---------------------------
 How to make your own levels
 ---------------------------
@@ -57,7 +60,6 @@ Their position within layout does not actually matter.
 Be sure to add corresponding entries to "bonus_time" within bblevels.py. 
 Integer values refer to milliseconds.
 
-.
 ----------
 
 For each of the the following elements added, 
@@ -67,7 +69,6 @@ you must delete a space within same line of the template:
 2 - will create a double-hit (blue) block
 3 - will create a triple-hit (seafoam) block
 
-.
 ---------
 
 Each of the following elements will change the required character length
@@ -125,7 +126,6 @@ Finally, the template:
 		"          P               ",
 		"                          ",
 	],
-
 
 
 """
