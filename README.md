@@ -18,7 +18,7 @@ in which you store and run block_breaker_pygame.py
 
 A file called highscore.csv, which acts as a save file for the top 5 high score results,
 will be created automatically if it does not already exist.
-											.
+
 --------------------
 Why did I make this?
 --------------------
@@ -42,7 +42,7 @@ simple terms below), or to modify and take from this code as you see fit.
 
 Thank you for taking the time to look at this, and if you're learning too, I hope 
 that something here helps with that process. 
-										.
+
 ---------------------------
 How to make your own levels
 ---------------------------
@@ -81,7 +81,6 @@ X - will create an extra large three-hit block
   - but will overlap any blocks placed immediately after or below it
   - To avoid overlap make sure the characters to the left and below are both spaces
 
-.
 ---------
 Template:
 ---------
